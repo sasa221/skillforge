@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { UserRoleType } from '@prisma/client';
+import { UserRoleType } from '../../prisma-enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PatchUserMeDto } from './dto/patch-user-me.dto';
@@ -18,7 +18,7 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const roles = user.roles.map((r) => r.role.type);
+    const roles = user.roles.map((r: { role: { type: string } }) => r.role.type);
     return {
       id: user.id,
       email: user.email,
@@ -56,8 +56,8 @@ export class UsersService {
       where: { userId },
       include: { role: true },
     });
-    const userRoles = rows.map((r) => r.role.type);
-    return roles.some((r) => userRoles.includes(r));
+    const userRoles = rows.map((r: { role: { type: string } }) => r.role.type);
+    return roles.some((r: string) => userRoles.includes(r));
   }
 }
 

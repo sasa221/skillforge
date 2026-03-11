@@ -1,7 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { UserRoleType } from '@prisma/client';
+import { UserRoleType } from '../../prisma-enums';
 import * as argon2 from 'argon2';
 
 import { PrismaService } from '../prisma/prisma.service';

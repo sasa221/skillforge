@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ContentStatus } from '@prisma/client';
+import { ContentStatus } from '../../prisma-enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
