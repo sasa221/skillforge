@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ContentStatus, QuestionType } from '@prisma/client';
+import { ContentStatus, QuestionType } from '../../prisma-enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from '../courses/dto/create-course.dto';

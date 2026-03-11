@@ -1,4 +1,4 @@
-import { ContentStatus } from '@prisma/client';
+import { ContentStatus } from '../../prisma-enums';
 
 export const PUBLIC_CONTENT_WHERE = {
   status: ContentStatus.published,

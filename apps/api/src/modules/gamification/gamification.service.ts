@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AchievementType, Prisma, UserBadge, UserRoleType } from '@prisma/client';
+import { Prisma, UserBadge } from '@prisma/client';
+import { AchievementType, UserRoleType } from '../../prisma-enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 
