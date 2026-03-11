@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -17,12 +18,11 @@ function parseAllowedOrigins(raw: string | undefined): string[] {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   const config = app.get(ConfigService);
 
   // When deployed behind a proxy (Render/Railway/etc), enable secure cookies / correct client IPs.
   if (String(config.get('TRUST_PROXY') ?? '').toLowerCase() === 'true' || String(config.get('TRUST_PROXY') ?? '') === '1') {
-    // Express: trust the first proxy hop (typical managed platforms)
     app.set('trust proxy', 1);
   }
 
