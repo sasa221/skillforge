@@ -129,7 +129,7 @@ Go back to Render API env vars:
 | Cookie path | `auth.controller.ts` | `path: '/auth'` (matches refresh endpoint) |
 | Credentials | `apps/web/src/lib/api/client.ts` | `credentials: 'include'` on all fetch |
 | API base URL | Web env | `NEXT_PUBLIC_API_BASE_URL` used by client |
-| Dockerfile CMD | `apps/api/Dockerfile` | `node dist/src/main.js` (matches Nest build output) |
+| Dockerfile CMD | `apps/api/Dockerfile` | `node dist/main.js` (matches Nest build output) |
 
 ---
 

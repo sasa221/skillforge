@@ -24,4 +24,4 @@ COPY --from=base /app/node_modules /app/node_modules
 COPY --from=base /app/apps/api/package.json ./package.json
 
 EXPOSE 3200
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]
