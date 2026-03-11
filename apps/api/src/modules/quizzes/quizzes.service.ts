@@ -65,7 +65,7 @@ export class QuizzesService {
         lessonId: quiz.lessonId,
         passingScore: quiz.passingScore,
         title: quiz.title,
-        questions: quiz.questions.map((q) => ({
+        questions: quiz.questions.map((q: { id: string; type: string; difficulty: number; prompt: string; order: number; options: Array<{ id: string; text: string; order: number }> }) => ({
           id: q.id,
           type: q.type,
           difficulty: q.difficulty,
@@ -73,7 +73,7 @@ export class QuizzesService {
           order: q.order,
           options:
             q.type === QuestionType.multiple_choice || q.type === QuestionType.true_false
-              ? q.options.map((o) => ({ id: o.id, text: o.text, order: o.order }))
+              ? q.options.map((o: { id: string; text: string; order: number }) => ({ id: o.id, text: o.text, order: o.order }))
               : [],
         })),
       },
@@ -94,18 +94,20 @@ export class QuizzesService {
     });
     if (questions.length === 0) throw new BadRequestException('Quiz has no questions');
 
-    const allowedQids = new Set(questions.map((q) => q.id));
+    type QuestionWithOptions = { id: string; type: string; options: Array<{ id: string; text: string }>; correctOptionId: string | null; explanation: string | null };
+    const allowedQids = new Set(questions.map((q: QuestionWithOptions) => q.id));
     const seen = new Set<string>();
     for (const a of dto.answers) {
       if (!allowedQids.has(a.questionId)) throw new BadRequestException('Answer includes unknown questionId');
       if (seen.has(a.questionId)) throw new BadRequestException('Duplicate question answer');
       seen.add(a.questionId);
     }
-    const missing = questions.filter((q) => !seen.has(q.id));
+    const missing = questions.filter((q: QuestionWithOptions) => !seen.has(q.id));
     if (missing.length) throw new BadRequestException('Please answer all questions before submitting');
 
-    const answerByQ = new Map(dto.answers.map((a) => [a.questionId, a]));
-    const results = questions.map((q) => {
+    type AnswerItem = { questionId: string; selectedOptionId?: string };
+    const answerByQ = new Map(dto.answers.map((a: AnswerItem) => [a.questionId, a]));
+    const results = questions.map((q: QuestionWithOptions) => {
       const input = answerByQ.get(q.id);
       let isCorrect = false;
       let selectedOptionId: string | null = null;
@@ -113,7 +115,7 @@ export class QuizzesService {
       if (q.type === QuestionType.multiple_choice || q.type === QuestionType.true_false) {
         if (!input?.selectedOptionId) throw new BadRequestException('Please choose an option for each question');
         selectedOptionId = input.selectedOptionId;
-        const optionExists = q.options.some((o) => o.id === selectedOptionId);
+        const optionExists = q.options.some((o: { id: string }) => o.id === selectedOptionId);
         if (!optionExists) throw new BadRequestException('Selected option is invalid for this question');
         isCorrect = Boolean(q.correctOptionId && q.correctOptionId === input.selectedOptionId);
       } else {
@@ -122,10 +124,10 @@ export class QuizzesService {
       }
 
       const correctOption = q.correctOptionId
-        ? q.options.find((o) => o.id === q.correctOptionId) ?? null
+        ? q.options.find((o: { id: string }) => o.id === q.correctOptionId) ?? null
         : null;
       const selectedOption = selectedOptionId
-        ? q.options.find((o) => o.id === selectedOptionId) ?? null
+        ? q.options.find((o: { id: string }) => o.id === selectedOptionId) ?? null
         : null;
 
       return {
@@ -138,7 +140,14 @@ export class QuizzesService {
       };
     });
 
-    const correct = results.filter((r) => r.isCorrect).length;
+    type ResultItem = {
+      questionId: string;
+      isCorrect: boolean;
+      explanation: string | null;
+      correctOption: { id: string; text: string } | null;
+      selectedOption?: { id: string; text: string } | null;
+    };
+    const correct = results.filter((r: ResultItem) => r.isCorrect).length;
     const score = Math.round((correct / results.length) * 100);
     const passed = score >= quiz.passingScore;
     this.logger.log(`quiz submitted user=${userId} lesson=${lessonId} quiz=${quiz.id} score=${score} passed=${passed}`);
@@ -151,7 +160,7 @@ export class QuizzesService {
         score,
         passed,
         answers: {
-          create: results.map((r) => ({
+          create: results.map((r: ResultItem) => ({
             questionId: r.questionId,
             selectedOptionId: r.selectedOption?.id ?? null,
             isCorrect: r.isCorrect,
@@ -181,7 +190,7 @@ export class QuizzesService {
       score,
       passed,
       passingScore: quiz.passingScore,
-      questions: results.map((r) => ({
+      questions: results.map((r: ResultItem) => ({
         questionId: r.questionId,
         isCorrect: r.isCorrect,
         explanation: r.isCorrect ? null : r.explanation,

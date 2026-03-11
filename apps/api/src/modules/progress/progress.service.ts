@@ -50,7 +50,7 @@ export class ProgressService {
       ? await this.prisma.lessonProgress.count({
           where: {
             userId,
-            lessonId: { in: lessons.map((l) => l.id) },
+            lessonId: { in: lessons.map((l: { id: string }) => l.id) },
             completedAt: { not: null },
           },
         })
@@ -82,7 +82,7 @@ export class ProgressService {
       ? await this.prisma.lessonProgress.count({
           where: {
             userId,
-            lessonId: { in: lessons.map((l) => l.id) },
+            lessonId: { in: lessons.map((l: { id: string }) => l.id) },
             completedAt: { not: null },
           },
         })
@@ -176,21 +176,25 @@ export class ProgressService {
       throw new NotFoundException('Course not found');
     }
 
+    type ModuleWithLessons = (typeof course.modules)[0];
+    type LessonSelect = { id: string; title: string; slug: string; order: number };
     const lessonProgressRows = await this.prisma.lessonProgress.findMany({
-      where: { userId, lessonId: { in: course.modules.flatMap((m) => m.lessons.map((l) => l.id)) } },
+      where: { userId, lessonId: { in: course.modules.flatMap((m: ModuleWithLessons) => m.lessons.map((l: LessonSelect) => l.id)) } },
     });
-    const lpByLesson = new Map(lessonProgressRows.map((lp) => [lp.lessonId, lp]));
+    const lpByLesson = new Map(
+      lessonProgressRows.map((lp: { lessonId: string; completedAt: Date | null }) => [lp.lessonId, lp]),
+    );
 
-    const modules = course.modules.map((m) => {
+    const modules = course.modules.map((m: ModuleWithLessons) => {
       const total = m.lessons.length;
-      const completed = m.lessons.filter((l) => lpByLesson.get(l.id)?.completedAt).length;
+      const completed = m.lessons.filter((l: LessonSelect) => lpByLesson.get(l.id)?.completedAt).length;
       const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
       return {
         id: m.id,
         title: m.title,
         order: m.order,
         percent,
-        lessons: m.lessons.map((l) => ({
+        lessons: m.lessons.map((l: LessonSelect) => ({
           id: l.id,
           title: l.title,
           slug: l.slug,
@@ -200,9 +204,10 @@ export class ProgressService {
       };
     });
 
-    const totalLessons = modules.reduce((acc, m) => acc + m.lessons.length, 0);
+    type ModuleWithCompleted = { lessons: Array<LessonSelect & { completed?: boolean }> };
+    const totalLessons = modules.reduce((acc: number, m: ModuleWithCompleted) => acc + m.lessons.length, 0);
     const completedLessons = modules.reduce(
-      (acc, m) => acc + m.lessons.filter((l) => l.completed).length,
+      (acc: number, m: ModuleWithCompleted) => acc + m.lessons.filter((l: LessonSelect & { completed?: boolean }) => l.completed).length,
       0,
     );
     const percent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
@@ -274,15 +279,17 @@ export class ProgressService {
     let continueLesson: { slug: string; title: string; courseSlug: string; courseTitle: string } | null =
       null;
     if (enrollment) {
-      const lessonIds = enrollment.course.modules.flatMap((m) => m.lessons.map((l) => l.id));
+      type ModWithLessons = (typeof enrollment.course.modules)[0];
+      type LessonId = { id: string };
+      const lessonIds = enrollment.course.modules.flatMap((m: ModWithLessons) => m.lessons.map((l: LessonId) => l.id));
       const completed = await this.prisma.lessonProgress.findMany({
         where: { userId, lessonId: { in: lessonIds }, completedAt: { not: null } },
         select: { lessonId: true },
       });
-      const completedSet = new Set(completed.map((c) => c.lessonId));
+      const completedSet = new Set(completed.map((c: { lessonId: string }) => c.lessonId));
       const firstIncomplete = enrollment.course.modules
-        .flatMap((m) => m.lessons)
-        .find((l) => !completedSet.has(l.id));
+        .flatMap((m: ModWithLessons) => m.lessons)
+        .find((l: LessonId) => !completedSet.has(l.id));
       if (firstIncomplete) {
         continueLesson = {
           slug: firstIncomplete.slug,
@@ -300,20 +307,20 @@ export class ProgressService {
       enrollmentsCount: enrollments,
       completedLessonsCount: completedLessons,
       completedCoursesCount: completedCourses,
-      recentBadges: recentBadges.map((b) => ({
+      recentBadges: recentBadges.map((b: { badge: { key: string; title: string; description: string | null }; awardedAt: Date }) => ({
         key: b.badge.key,
         title: b.badge.title,
         description: b.badge.description,
         awardedAt: b.awardedAt,
       })),
-      recentAchievements: recentAchievements.map((a) => ({
+      recentAchievements: recentAchievements.map((a: { achievement: { type: string; title: string; description: string | null }; awardedAt: Date }) => ({
         type: a.achievement.type,
         title: a.achievement.title,
         description: a.achievement.description,
         awardedAt: a.awardedAt,
       })),
       continueLesson,
-      recentQuizAttempts: recentQuizAttempts.map((a) => ({
+      recentQuizAttempts: recentQuizAttempts.map((a: { id: string; score: number; passed: boolean; createdAt: Date; lesson: { title: string; slug: string } }) => ({
         id: a.id,
         score: a.score,
         passed: a.passed,
@@ -345,13 +352,13 @@ export class ProgressService {
     return {
       xp: profile.xp,
       level: profile.level,
-      badges: badges.map((b) => ({ key: b.badge.key, title: b.badge.title, description: b.badge.description })),
-      achievements: achievements.map((a) => ({
+      badges: badges.map((b: { badge: { key: string; title: string; description: string | null } }) => ({ key: b.badge.key, title: b.badge.title, description: b.badge.description })),
+      achievements: achievements.map((a: { achievement: { type: string; title: string; description: string | null } }) => ({
         type: a.achievement.type,
         title: a.achievement.title,
         description: a.achievement.description,
       })),
-      courses: courseProgress.map((cp) => ({
+      courses: courseProgress.map((cp: { course: { id: string; title: string; slug: string }; percent: number; status: string; completedAt: Date | null }) => ({
         course: cp.course,
         percent: cp.percent,
         status: cp.status,
