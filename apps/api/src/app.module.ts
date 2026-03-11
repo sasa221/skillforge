@@ -22,7 +22,7 @@ import { EventsModule } from './modules/events/events.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env'],
+      ignoreEnvFile: true,
     }),
     PrismaModule,
     HealthModule,
