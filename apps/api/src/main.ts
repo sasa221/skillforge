@@ -17,6 +17,17 @@ function parseAllowedOrigins(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/** Extract host only from DATABASE_URL for safe logging. Never log full URL. */
+function sanitizeDatabaseHost(url: string | undefined): string {
+  if (!url) return '[not set]';
+  try {
+    const u = new URL(url.replace(/^postgres:\/\//, 'postgresql://'));
+    return `${u.hostname}:${u.port || '5432'}`;
+  } catch {
+    return '[invalid url]';
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   const config = app.get(ConfigService);
@@ -68,7 +79,20 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   const port = Number(process.env.PORT || config.get('API_PORT') || 3200);
-  await app.listen(port);
+  const trustProxy = (String(config.get('TRUST_PROXY') ?? '').toLowerCase() === 'true') || (String(config.get('TRUST_PROXY') ?? '') === '1');
+
+  // Safe startup diagnostics (no secrets)
+  const dbUrl = process.env.DATABASE_URL;
+  console.log('[startup] NODE_ENV=', process.env.NODE_ENV);
+  console.log('[startup] process.env.PORT=', process.env.PORT);
+  console.log('[startup] resolved port=', port);
+  console.log('[startup] DATABASE_URL exists=', !!dbUrl);
+  console.log('[startup] DATABASE_URL host=', sanitizeDatabaseHost(dbUrl));
+  console.log('[startup] WEB_ORIGIN=', config.get<string>('WEB_ORIGIN') ?? '[not set]');
+  console.log('[startup] WEB_ORIGINS=', config.get<string>('WEB_ORIGINS') ?? '[not set]');
+  console.log('[startup] TRUST_PROXY enabled=', trustProxy);
+
+  await app.listen(port, '0.0.0.0');
 }
 
 void bootstrap();
