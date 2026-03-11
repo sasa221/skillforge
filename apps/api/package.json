@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
-    "prebuild": "prisma generate",
+    "prebuild": "prisma generate --schema=./prisma/schema.prisma",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "format": "prettier \"src/**/*.{ts,tsx,md,json}\" --check",

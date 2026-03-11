@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UserRoleType } from '../../../prisma-enums';
+import { UserRoleType } from '@prisma/client';
 
 class MeProfileResponse {
   @ApiProperty()

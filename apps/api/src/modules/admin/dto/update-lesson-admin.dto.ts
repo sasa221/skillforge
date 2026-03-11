@@ -1,4 +1,4 @@
-import { ContentStatus, LessonBlockType } from '../../../prisma-enums';
+import { ContentStatus, LessonBlockType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsArray, IsEnum, IsInt, IsObject, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 

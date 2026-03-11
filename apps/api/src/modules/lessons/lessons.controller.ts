@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { UserRoleType } from '../../prisma-enums';
+import { UserRoleType } from '@prisma/client';
 
 import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
 import { Roles } from '../auth/rbac/roles.decorator';

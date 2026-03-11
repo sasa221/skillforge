@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ContentStatus, CourseDifficulty } from '../../../prisma-enums';
+import { ContentStatus, CourseDifficulty } from '@prisma/client';
 import { IsArray, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateCourseDto {

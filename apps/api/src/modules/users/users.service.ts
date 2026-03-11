@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { UserRoleType } from '../../prisma-enums';
+import { UserRoleType } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PatchUserMeDto } from './dto/patch-user-me.dto';

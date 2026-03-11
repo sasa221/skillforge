@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AiMessageRole, ContentStatus, QuestionType } from '../../prisma-enums';
+import { AiMessageRole, ContentStatus, QuestionType } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { AiMode, ProviderChatMessage } from './ai.types';

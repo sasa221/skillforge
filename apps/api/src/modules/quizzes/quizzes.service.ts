@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ContentStatus, QuestionType } from '../../prisma-enums';
+import { ContentStatus, QuestionType } from '@prisma/client';
 
 import { GamificationService } from '../gamification/gamification.service';
 import { PrismaService } from '../prisma/prisma.service';
