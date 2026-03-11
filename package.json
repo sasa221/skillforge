@@ -1,0 +1,33 @@
+{
+  "name": "skillforge",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "format": "prettier . --check",
+    "format:write": "prettier . --write",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm -C apps/api prisma migrate dev",
+    "db:seed": "pnpm -C apps/api prisma db seed"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^10.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,md,json,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}
