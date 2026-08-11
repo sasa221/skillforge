@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
@@ -83,5 +83,26 @@ export class ProgressController {
   @Post('lessons/:id/complete')
   async completeLesson(@Req() req: any, @Param('id') id: string) {
     return this.progress.completeLesson(req.user.sub, id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @Get('lessons/:id/notes')
+  async getLessonNotes(@Req() req: any, @Param('id') id: string) {
+    return this.progress.getLessonNotes(req.user.sub, id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @Post('lessons/:id/notes')
+  async createLessonNote(@Req() req: any, @Param('id') id: string, @Body() dto: { timestampSeconds: number; text: string }) {
+    return this.progress.createLessonNote(req.user.sub, id, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @Delete('lessons/:id/notes/:noteId')
+  async deleteLessonNote(@Req() req: any, @Param('id') id: string, @Param('noteId') noteId: string) {
+    return this.progress.deleteLessonNote(req.user.sub, id, noteId);
   }
 }

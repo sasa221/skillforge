@@ -38,6 +38,7 @@ import { ReadingProgressBar } from '@/components/lesson/ReadingProgressBar';
 import { LessonNavigation } from '@/components/lesson/LessonNavigation';
 import { CompletionCelebration } from '@/components/lesson/CompletionCelebration';
 import { LessonNotes } from '@/components/lesson/LessonNotes';
+import { TimestampedVideoNotes } from '@/components/lesson/TimestampedVideoNotes';
 import { CodePlayground } from '@/components/lesson/CodePlayground';
 
 type QuizAnswerState = Record<string, string | string[]>;
@@ -699,6 +700,9 @@ export function LessonClient({ lessonSlug }: { lessonSlug: string }) {
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
+      </div>
+      <div className="mt-8">
+        <TimestampedVideoNotes lessonId={lesson.id} />
       </div>
       <LessonNotes lessonSlug={lessonSlug} />
     </main>

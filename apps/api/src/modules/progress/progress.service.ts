@@ -1302,5 +1302,39 @@ export class ProgressService {
 </body>
 </html>`;
   }
+
+  // Timestamped Lesson Notes Store
+  private lessonNotesStore: Map<string, Array<{ id: string; userId: string; lessonId: string; timestampSeconds: number; text: string; createdAt: string }>> = new Map();
+
+  async getLessonNotes(userId: string, lessonId: string) {
+    const key = `${userId}:${lessonId}`;
+    return { notes: this.lessonNotesStore.get(key) ?? [] };
+  }
+
+  async createLessonNote(userId: string, lessonId: string, dto: { timestampSeconds: number; text: string }) {
+    const key = `${userId}:${lessonId}`;
+    const newNote = {
+      id: `note-${Date.now()}`,
+      userId,
+      lessonId,
+      timestampSeconds: Math.max(0, dto.timestampSeconds),
+      text: dto.text,
+      createdAt: new Date().toISOString(),
+    };
+
+    const current = this.lessonNotesStore.get(key) ?? [];
+    current.unshift(newNote);
+    this.lessonNotesStore.set(key, current);
+
+    return newNote;
+  }
+
+  async deleteLessonNote(userId: string, lessonId: string, noteId: string) {
+    const key = `${userId}:${lessonId}`;
+    const current = this.lessonNotesStore.get(key) ?? [];
+    const filtered = current.filter((n) => n.id !== noteId);
+    this.lessonNotesStore.set(key, filtered);
+    return { ok: true };
+  }
 }
 

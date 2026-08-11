@@ -136,6 +136,15 @@ export const progressApi = {
   activityFeed: () => apiFetch<any[]>('/progress/activity-feed', { method: 'GET' }),
   activityHeatmap: () => apiFetch<{ date: string; count: number }[]>('/progress/activity-heatmap', { method: 'GET' }),
   profileSummary: () => apiFetch<any>('/progress/profile-summary', { method: 'GET' }),
+  getNotes: (lessonId: string) => apiFetch<{ notes: any[] }>(`/progress/lessons/${lessonId}/notes`, { method: 'GET' }),
+  createNote: (lessonId: string, body: { timestampSeconds: number; text: string }) =>
+    apiFetch<any>(`/progress/lessons/${lessonId}/notes`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+    }),
+  deleteNote: (lessonId: string, noteId: string) =>
+    apiFetch<any>(`/progress/lessons/${lessonId}/notes/${noteId}`, { method: 'DELETE' }),
 };
 
 export const gamificationApi = {
