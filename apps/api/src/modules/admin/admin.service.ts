@@ -555,5 +555,38 @@ export class AdminService {
     if (!q || q.deletedAt) throw new NotFoundException('Question not found');
     return this.prisma.question.update({ where: { id }, data: { deletedAt: new Date() } });
   }
+
+  async exportUsersCsv(): Promise<string> {
+    const users = await this.prisma.user.findMany({
+      where: { deletedAt: null },
+      include: { profile: true, roles: { include: { role: true } } },
+      take: 1000,
+    });
+
+    const header = 'ID,Email,Roles,FullName,CreatedAt\n';
+    const rows = users
+      .map(
+        (u) =>
+          `${u.id},"${u.email}",${u.roles.map((r) => r.role.type).join(';') || 'student'},"${u.profile?.fullName || ''}",${u.createdAt.toISOString()}`,
+      )
+      .join('\n');
+    return header + rows;
+  }
+
+  async exportCoursesCsv(): Promise<string> {
+    const courses = await this.prisma.course.findMany({
+      where: { deletedAt: null },
+      include: { _count: { select: { enrollments: true, modules: true } } },
+    });
+
+    const header = 'ID,Title,Slug,Status,Difficulty,EnrollmentsCount,ModulesCount\n';
+    const rows = courses
+      .map(
+        (c) =>
+          `${c.id},"${c.title}",${c.slug},${c.status},${c.difficulty},${c._count.enrollments},${c._count.modules}`,
+      )
+      .join('\n');
+    return header + rows;
+  }
 }
 

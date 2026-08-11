@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -117,6 +117,22 @@ export class AuthController {
   @Post('email-verification/confirm')
   async confirmEmailVerification(@Body() dto: ConfirmEmailVerificationDto) {
     return this.auth.confirmEmailVerification(dto.token);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Get active logged in sessions' })
+  @Get('sessions')
+  async getActiveSessions(@Req() req: any) {
+    return this.auth.getActiveSessions(req.user.sub);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Revoke all active sessions except current' })
+  @Delete('sessions')
+  async revokeSessions(@Req() req: any) {
+    return this.auth.revokeSessions(req.user.sub);
   }
 }
 

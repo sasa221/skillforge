@@ -580,3 +580,13 @@ export const codeExecutionApi = {
     }),
 };
 
+export const authSessionsApi = {
+  list: () => apiFetch<{ sessions: any[] }>('/auth/sessions', { method: 'GET' }),
+  revoke: () => apiFetch<{ ok: boolean; message: string }>('/auth/sessions', { method: 'DELETE' }),
+};
+
+export const adminExportApi = {
+  usersCsvUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3200'}/admin/export/users/csv`,
+  coursesCsvUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3200'}/admin/export/courses/csv`,
+};
+

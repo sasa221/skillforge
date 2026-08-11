@@ -26,6 +26,7 @@ const baseNavItems = [
   { href: '/dashboard/achievements', label: 'Achievements' },
   { href: '/dashboard/leaderboard', label: 'Leaderboard' },
   { href: '/dashboard/certificates', label: 'Certificates' },
+  { href: '/dashboard/settings/security', label: 'Security' },
 ];
 
 export function AppShell({ children }: AppShellProps) {

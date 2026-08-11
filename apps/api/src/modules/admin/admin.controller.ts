@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRoleType } from '../../prisma-enums';
 
@@ -44,6 +45,24 @@ export class AdminController {
   @Get('users')
   users(@Query() query: AdminUsersQueryDto) {
     return this.admin.users(query);
+  }
+
+  @ApiOkResponse({ description: 'Export users list as CSV' })
+  @Get('export/users/csv')
+  async exportUsersCsv(@Res() res: Response) {
+    const csv = await this.admin.exportUsersCsv();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=users_report.csv');
+    return res.send(csv);
+  }
+
+  @ApiOkResponse({ description: 'Export courses list as CSV' })
+  @Get('export/courses/csv')
+  async exportCoursesCsv(@Res() res: Response) {
+    const csv = await this.admin.exportCoursesCsv();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=courses_report.csv');
+    return res.send(csv);
   }
 
   // ===== Skills =====
