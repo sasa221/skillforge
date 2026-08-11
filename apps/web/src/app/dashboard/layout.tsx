@@ -3,14 +3,15 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-import { useAuthInit } from '@/lib/auth/use-auth-init';
+import { AppShell } from '@/components/layout/AppShell';
 import { useAuthStore } from '@/lib/auth/store';
+import { useAuthInit } from '@/lib/auth/use-auth-init';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { accessToken, initTried } = useAuthInit();
-  const user = useAuthStore((s) => s.user);
+  const user = useAuthStore((state) => state.user);
 
   React.useEffect(() => {
     if (!initTried) return;
@@ -21,16 +22,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!initTried && !accessToken) {
     return (
-      <main className="container py-10">
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="text-sm text-muted-foreground">Loading session…</div>
+      <AppShell>
+        <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm">
+          <div className="text-sm text-muted-foreground">Loading session...</div>
         </div>
-      </main>
+      </AppShell>
     );
   }
 
   if (!accessToken || !user) return null;
 
-  return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
 }
-

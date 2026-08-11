@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
@@ -17,14 +20,23 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { EventsModule } from './modules/events/events.module';
+import { LearningAccessModule } from './modules/learning-access/learning-access.module';
+import { EmailVerifiedGuard } from './modules/auth/guards/email-verified.guard';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      ignoreEnvFile: true,
+      envFilePath: ['../../.env', '.env'],
     }),
+    // Global rate limiting: 100 req / 60s default; auth endpoints override to stricter limits
+    ThrottlerModule.forRoot([
+      { ttl: 60_000, limit: 100 },
+    ]),
+    // Enable @Cron() decorators across all modules
+    ScheduleModule.forRoot(),
     PrismaModule,
+    LearningAccessModule,
     HealthModule,
     EventsModule,
     AuthModule,
@@ -41,6 +53,12 @@ import { EventsModule } from './modules/events/events.module';
     AiModule,
     AdminModule,
   ],
+  providers: [
+    EmailVerifiedGuard,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
-

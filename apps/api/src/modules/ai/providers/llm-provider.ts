@@ -12,5 +12,6 @@ export type LlmChatResponse = {
 
 export interface LlmProvider {
   chat(req: LlmChatRequest): Promise<LlmChatResponse>;
+  stream?(req: LlmChatRequest): Promise<AsyncIterable<string>>;
 }
 

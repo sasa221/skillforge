@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsArray, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class ExplainAnswerDto {
   @ApiProperty()
@@ -20,5 +20,11 @@ export class ExplainAnswerDto {
   @IsString()
   @MinLength(1)
   userAnswerText?: string;
+
+  @ApiPropertyOptional({ description: 'Ordered answer option ids (for ordered questions)', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  orderedAnswer?: string[];
 }
 

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
+import { AdminShell } from '@/components/admin/AdminShell';
 import { useAuthInit } from '@/lib/auth/use-auth-init';
 import { useAuthStore } from '@/lib/auth/store';
 
@@ -37,6 +38,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!accessToken || !user) return null;
   if (!user.roles.some((r) => adminRoles.has(r))) return null;
 
-  return <>{children}</>;
+  return <AdminShell>{children}</AdminShell>;
 }
 

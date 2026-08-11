@@ -11,6 +11,7 @@ export type EventName =
   | 'quiz_submitted'
   | 'quiz_passed'
   | 'ai_message_sent'
+  | 'ai_feedback'
   | 'course_completed';
 
 @Injectable()

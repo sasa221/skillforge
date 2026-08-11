@@ -1,7 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ContentStatus, QuestionType } from '../../prisma-enums';
 
 import { GamificationService } from '../gamification/gamification.service';
+import { LearningAccessService } from '../learning-access/learning-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProgressService } from '../progress/progress.service';
 import { EventsService } from '../events/events.service';
@@ -17,14 +18,8 @@ export class QuizzesService {
     private readonly gamification: GamificationService,
     private readonly progress: ProgressService,
     private readonly events: EventsService,
+    private readonly access: LearningAccessService,
   ) {}
-
-  private async assertEnrolled(userId: string, courseId: string) {
-    const enrollment = await this.prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment) throw new ForbiddenException('Not enrolled');
-  }
 
   private async getLessonQuizOrNull(lessonId: string) {
     const lesson = await this.prisma.lesson.findUnique({
@@ -55,7 +50,7 @@ export class QuizzesService {
 
   async getQuizForLesson(userId: string, lessonId: string) {
     const { lesson, quiz } = await this.getLessonQuizOrNull(lessonId);
-    await this.assertEnrolled(userId, lesson.module.courseId);
+    await this.access.assertLessonUnlocked(userId, lesson);
     if (!quiz || quiz.deletedAt || quiz.status !== ContentStatus.published) return { hasQuiz: false };
 
     return {
@@ -71,8 +66,11 @@ export class QuizzesService {
           difficulty: q.difficulty,
           prompt: q.prompt,
           order: q.order,
+          // Return options for choice, true_false AND ordered (needed to render drag-and-drop)
           options:
-            q.type === QuestionType.multiple_choice || q.type === QuestionType.true_false
+            q.type === QuestionType.multiple_choice ||
+            q.type === QuestionType.true_false ||
+            q.type === QuestionType.ordered
               ? q.options.map((o: { id: string; text: string; order: number }) => ({ id: o.id, text: o.text, order: o.order }))
               : [],
         })),
@@ -82,7 +80,7 @@ export class QuizzesService {
 
   async submitQuizForLesson(userId: string, lessonId: string, dto: SubmitQuizDto) {
     const { lesson, quiz } = await this.getLessonQuizOrNull(lessonId);
-    await this.assertEnrolled(userId, lesson.module.courseId);
+    await this.access.assertLessonUnlocked(userId, lesson);
     if (!quiz || quiz.deletedAt || quiz.status !== ContentStatus.published) {
       throw new NotFoundException('Quiz not found');
     }
@@ -94,7 +92,15 @@ export class QuizzesService {
     });
     if (questions.length === 0) throw new BadRequestException('Quiz has no questions');
 
-    type QuestionWithOptions = { id: string; type: string; options: Array<{ id: string; text: string }>; correctOptionId: string | null; explanation: string | null };
+    type QuestionWithOptions = {
+      id: string;
+      type: string;
+      options: Array<{ id: string; text: string }>;
+      correctOptionId: string | null;
+      correctText: string | null;
+      correctOrder: string[];
+      explanation: string | null;
+    };
     const allowedQids = new Set(questions.map((q: QuestionWithOptions) => q.id));
     const seen = new Set<string>();
     for (const a of dto.answers) {
@@ -105,7 +111,7 @@ export class QuizzesService {
     const missing = questions.filter((q: QuestionWithOptions) => !seen.has(q.id));
     if (missing.length) throw new BadRequestException('Please answer all questions before submitting');
 
-    type AnswerItem = { questionId: string; selectedOptionId?: string };
+    type AnswerItem = { questionId: string; selectedOptionId?: string; textAnswer?: string; orderedAnswer?: string[] };
     const answerByQ = new Map(dto.answers.map((a: AnswerItem) => [a.questionId, a]));
     const results = questions.map((q: QuestionWithOptions) => {
       const input = answerByQ.get(q.id);
@@ -114,12 +120,21 @@ export class QuizzesService {
 
       if (q.type === QuestionType.multiple_choice || q.type === QuestionType.true_false) {
         if (!input?.selectedOptionId) throw new BadRequestException('Please choose an option for each question');
-        selectedOptionId = input.selectedOptionId;
+        selectedOptionId = input.selectedOptionId!;
         const optionExists = q.options.some((o: { id: string }) => o.id === selectedOptionId);
         if (!optionExists) throw new BadRequestException('Selected option is invalid for this question');
         isCorrect = Boolean(q.correctOptionId && q.correctOptionId === input.selectedOptionId);
+      } else if (q.type === QuestionType.short_answer) {
+        const userText = (input?.textAnswer ?? '').trim().toLowerCase();
+        const correctText = (q.correctText ?? '').trim().toLowerCase();
+        if (!userText) throw new BadRequestException('Please provide a text answer for this question');
+        isCorrect = Boolean(userText && correctText && userText === correctText);
+      } else if (q.type === QuestionType.ordered) {
+        const userOrder: string[] = input?.orderedAnswer ?? [];
+        isCorrect =
+          userOrder.length === q.correctOrder.length &&
+          userOrder.every((optId: string, idx: number) => optId === q.correctOrder[idx]);
       } else {
-        // Future support for short_answer/ordered etc
         throw new BadRequestException(`Unsupported question type: ${q.type}`);
       }
 
@@ -137,6 +152,8 @@ export class QuizzesService {
         correctOption: correctOption ? { id: correctOption.id, text: correctOption.text } : null,
         selectedOption: selectedOption ? { id: selectedOption.id, text: selectedOption.text } : null,
         type: q.type,
+        textAnswer: q.type === QuestionType.short_answer ? (input?.textAnswer ?? '') : undefined,
+        orderedAnswer: q.type === QuestionType.ordered ? (input?.orderedAnswer ?? []) : undefined,
       };
     });
 
@@ -146,6 +163,9 @@ export class QuizzesService {
       explanation: string | null;
       correctOption: { id: string; text: string } | null;
       selectedOption?: { id: string; text: string } | null;
+      type: string;
+      textAnswer?: string;
+      orderedAnswer?: string[];
     };
     const correct = results.filter((r: ResultItem) => r.isCorrect).length;
     const score = Math.round((correct / results.length) * 100);
@@ -163,6 +183,8 @@ export class QuizzesService {
           create: results.map((r: ResultItem) => ({
             questionId: r.questionId,
             selectedOptionId: r.selectedOption?.id ?? null,
+            textAnswer: r.textAnswer ?? null,
+            orderedAnswer: r.orderedAnswer ?? [],
             isCorrect: r.isCorrect,
           })),
         },
@@ -176,12 +198,20 @@ export class QuizzesService {
       const alreadyPassed = await this.prisma.quizAttempt.findFirst({
         where: { userId, quizId: quiz.id, passed: true, id: { not: attempt.id } },
       });
+      const firstPass = !alreadyPassed;
       if (!alreadyPassed) {
         await this.gamification.awardXp(userId, XP_QUIZ_PASS);
         await this.gamification.maybeAwardFirstQuiz(userId);
+        await this.gamification.checkAndAwardNewBadges(userId);
       }
-      await this.events.track(userId, 'quiz_passed', { entityType: 'Quiz', entityId: quiz.id, lessonId, score });
-      // MVP rule: passing quiz auto-completes lesson
+      await this.events.track(userId, 'quiz_passed', {
+        entityType: 'Quiz',
+        entityId: quiz.id,
+        lessonId,
+        score,
+        firstPass,
+      });
+      // Passing quiz auto-completes lesson
       await this.progress.completeLesson(userId, lessonId);
     }
 
@@ -199,4 +229,3 @@ export class QuizzesService {
     };
   }
 }
-

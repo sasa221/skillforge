@@ -18,6 +18,26 @@ class MeProfileResponse {
   level!: number;
 }
 
+class MeInstructorProfileResponse {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  slug!: string;
+
+  @ApiProperty()
+  fullName!: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  title!: string | null;
+
+  @ApiProperty()
+  status!: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  avatarUrl!: string | null;
+}
+
 export class MeResponse {
   @ApiProperty()
   id!: string;
@@ -30,5 +50,8 @@ export class MeResponse {
 
   @ApiProperty({ required: false, type: MeProfileResponse, nullable: true })
   profile!: MeProfileResponse | null;
+
+  @ApiProperty({ required: false, type: MeInstructorProfileResponse, nullable: true })
+  instructorProfile!: MeInstructorProfileResponse | null;
 }
 

@@ -1,12 +1,15 @@
-import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'crypto';
 import { UserRoleType } from '../../prisma-enums';
 import * as argon2 from 'argon2';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { AuthLoginDto } from './dto/auth-login.dto';
 import { AuthSignupDto } from './dto/auth-signup.dto';
+import { ConfirmPasswordResetDto } from './dto/confirm-password-reset.dto';
 import { JwtUser } from './auth.types';
 import { EventsService } from '../events/events.service';
 
@@ -17,6 +20,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly events: EventsService,
+    private readonly emailService: EmailService,
   ) {}
 
   private accessTtlSeconds(): number {
@@ -95,6 +99,9 @@ export class AuthService {
 
     await this.setRefreshTokenHash(user.id, refreshToken);
     await this.events.track(user.id, 'user_signup', { entityType: 'User', entityId: user.id });
+
+    // Trigger email verification token send
+    void this.requestEmailVerification(user.email).catch(() => {});
 
     return {
       accessToken,
@@ -206,6 +213,129 @@ export class AuthService {
       where: { id: userId },
       data: { refreshTokenHash: null },
     });
+  }
+
+  async requestPasswordReset(email: string) {
+    const formattedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: formattedEmail },
+      include: { profile: true },
+    });
+
+    if (user && !user.deletedAt) {
+      await this.prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id },
+      });
+
+      const token = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await this.prisma.passwordResetToken.create({
+        data: {
+          id: randomBytes(16).toString('hex'),
+          userId: user.id,
+          token,
+          expiresAt,
+        },
+      });
+
+      await this.emailService.sendPasswordReset(
+        user.email,
+        token,
+        user.profile?.fullName,
+      );
+    }
+
+    return {
+      ok: true,
+      message: 'If an account exists for this email, a password reset link has been sent.',
+    };
+  }
+
+  async confirmPasswordReset(dto: ConfirmPasswordResetDto) {
+    const resetRecord = await this.prisma.passwordResetToken.findUnique({
+      where: { token: dto.token },
+    });
+
+    if (!resetRecord || resetRecord.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired password reset token');
+    }
+
+    const newHash = await argon2.hash(dto.newPassword);
+    await this.prisma.user.update({
+      where: { id: resetRecord.userId },
+      data: { passwordHash: newHash, refreshTokenHash: null },
+    });
+
+    await this.prisma.passwordResetToken.delete({
+      where: { id: resetRecord.id },
+    });
+
+    return { ok: true, message: 'Password reset successfully' };
+  }
+
+  async requestEmailVerification(email: string) {
+    const formattedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: formattedEmail },
+      include: { profile: true },
+    });
+
+    let token: string | undefined;
+    if (user && !user.deletedAt && !user.isEmailVerified) {
+      await this.prisma.emailVerificationToken.deleteMany({
+        where: { userId: user.id },
+      });
+
+      token = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      await this.prisma.emailVerificationToken.create({
+        data: {
+          id: randomBytes(16).toString('hex'),
+          userId: user.id,
+          token,
+          expiresAt,
+        },
+      });
+
+      await this.emailService.sendEmailVerification(
+        user.email,
+        token,
+        user.profile?.fullName,
+      );
+    }
+
+    const webUrl = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3100';
+    const isDev = (this.config.get('NODE_ENV') ?? 'development') === 'development';
+    const hasBrevoKey = !!(this.config.get('BREVO_API_KEY') || process.env.BREVO_API_KEY);
+
+    return {
+      ok: true,
+      message: 'If the account requires verification, a verification link has been sent.',
+      ...(token && (isDev || !hasBrevoKey) ? { debugUrl: `/verify-email?token=${token}` } : {}),
+    };
+  }
+
+  async confirmEmailVerification(token: string) {
+    const record = await this.prisma.emailVerificationToken.findUnique({
+      where: { token },
+    });
+
+    if (!record || record.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    await this.prisma.user.update({
+      where: { id: record.userId },
+      data: { isEmailVerified: true, emailVerifiedAt: new Date() },
+    });
+
+    await this.prisma.emailVerificationToken.delete({
+      where: { id: record.id },
+    });
+
+    return { ok: true, message: 'Email verified successfully' };
   }
 }
 

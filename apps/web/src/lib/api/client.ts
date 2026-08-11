@@ -1,6 +1,6 @@
 import { env } from '@/lib/env';
 import { useAuthStore } from '@/lib/auth/store';
-import type { AuthTokenResponse, MeUser } from '@/lib/auth/types';
+import type { AuthActionResponse, AuthTokenResponse, MeUser } from '@/lib/auth/types';
 
 type ApiErrorPayload = { message?: string | string[] } | string;
 
@@ -49,7 +49,9 @@ export async function apiFetch<T>(
     const headers: Record<string, string> = {
       ...(init?.headers as any),
     };
-    if (init?.body && !headers['content-type']) headers['content-type'] = 'application/json';
+    const isFormData =
+      typeof FormData !== 'undefined' && init?.body instanceof FormData;
+    if (init?.body && !isFormData && !headers['content-type']) headers['content-type'] = 'application/json';
     if (wantsAuth && token) headers.authorization = `Bearer ${token}`;
     return rawFetch(path, { ...init, headers });
   };
@@ -87,6 +89,34 @@ export const authApi = {
       method: 'POST',
     }),
   me: async () => apiFetch<MeUser>('/auth/me', { method: 'GET' }),
+  requestPasswordReset: async (input: { email: string }) =>
+    apiFetch<AuthActionResponse>('/auth/password-reset/request', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+    }),
+  confirmPasswordReset: async (input: { token: string; newPassword: string }) =>
+    apiFetch<AuthTokenResponse>('/auth/password-reset/confirm', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+    }),
+  requestEmailVerification: async (input: { email: string }) =>
+    apiFetch<AuthActionResponse>('/auth/email-verification/request', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+    }),
+  confirmEmailVerification: async (input: { token: string }) =>
+    apiFetch<AuthActionResponse>('/auth/email-verification/confirm', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+    }),
 };
 
 export { refreshAccessToken };

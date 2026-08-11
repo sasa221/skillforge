@@ -6,7 +6,9 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import { mkdirSync } from 'fs';
 import helmet from 'helmet';
+import { join } from 'path';
 
 import { AppModule } from './app.module';
 
@@ -44,6 +46,10 @@ async function bootstrap() {
   );
 
   app.use(cookieParser());
+
+  const uploadsRoot = join(process.cwd(), 'uploads');
+  mkdirSync(uploadsRoot, { recursive: true });
+  app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
 
   const allowedOrigins = [
     ...parseAllowedOrigins(config.get<string>('WEB_ORIGINS')),

@@ -16,6 +16,12 @@ class QuizAnswerInputDto {
   @IsOptional()
   @IsString()
   textAnswer?: string;
+
+  @ApiProperty({ required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  orderedAnswer?: string[];
 }
 
 export class SubmitQuizDto {

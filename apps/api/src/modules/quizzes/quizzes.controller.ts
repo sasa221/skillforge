@@ -2,12 +2,13 @@ import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/comm
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { QuizzesService } from './quizzes.service';
 
 @ApiTags('quizzes')
 @ApiBearerAuth()
-@UseGuards(JwtAccessGuard)
+@UseGuards(JwtAccessGuard, EmailVerifiedGuard)
 @Controller()
 export class QuizzesController {
   constructor(private readonly quizzes: QuizzesService) {}

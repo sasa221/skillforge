@@ -8,6 +8,10 @@ import { AUTH_COOKIE_REFRESH } from './auth.constants';
 import { AuthService } from './auth.service';
 import { JwtAccessGuard } from './guards/jwt-access.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
+import { ConfirmEmailVerificationDto } from './dto/confirm-email-verification.dto';
+import { ConfirmPasswordResetDto } from './dto/confirm-password-reset.dto';
+import { RequestEmailVerificationDto } from './dto/request-email-verification.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { AuthLoginDto } from './dto/auth-login.dto';
 import { AuthSignupDto } from './dto/auth-signup.dto';
 import { AuthTokenResponse } from './dto/auth-token.response';
@@ -89,6 +93,30 @@ export class AuthController {
   @Get('me')
   async me(@Req() req: any) {
     return this.users.me(req.user.sub);
+  }
+
+  @ApiOkResponse({ description: 'Request password reset email' })
+  @Post('password-reset/request')
+  async requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
+    return this.auth.requestPasswordReset(dto.email);
+  }
+
+  @ApiOkResponse({ description: 'Confirm password reset with token' })
+  @Post('password-reset/confirm')
+  async confirmPasswordReset(@Body() dto: ConfirmPasswordResetDto) {
+    return this.auth.confirmPasswordReset(dto);
+  }
+
+  @ApiOkResponse({ description: 'Request email verification link' })
+  @Post('email-verification/request')
+  async requestEmailVerification(@Body() dto: RequestEmailVerificationDto) {
+    return this.auth.requestEmailVerification(dto.email);
+  }
+
+  @ApiOkResponse({ description: 'Confirm email verification with token' })
+  @Post('email-verification/confirm')
+  async confirmEmailVerification(@Body() dto: ConfirmEmailVerificationDto) {
+    return this.auth.confirmEmailVerification(dto.token);
   }
 }
 

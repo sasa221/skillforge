@@ -1,21 +1,23 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Sparkles, Wrench } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { AdminPageIntro, AdminStatusPill, AdminSurface } from '@/components/admin/AdminUi';
 import { adminApi } from '@/lib/api/endpoints';
 
 export default function AdminSkillsPage() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['admin', 'skills'], queryFn: adminApi.skills.list });
+  const formRef = React.useRef<HTMLElement | null>(null);
+  const skillsQuery = useQuery({ queryKey: ['admin', 'skills'], queryFn: adminApi.skills.list });
 
   const [title, setTitle] = React.useState('');
   const [slug, setSlug] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [status, setStatus] = React.useState<'draft' | 'published' | 'archived'>('draft');
+  const [searchText, setSearchText] = React.useState('');
 
   const create = useMutation({
     mutationFn: () => adminApi.skills.create({ title, slug, description, status }),
@@ -29,7 +31,8 @@ export default function AdminSkillsPage() {
   });
 
   const update = useMutation({
-    mutationFn: (input: { id: string; patch: any }) => adminApi.skills.update(input.id, input.patch),
+    mutationFn: (input: { id: string; patch: Record<string, unknown> }) =>
+      adminApi.skills.update(input.id, input.patch),
     onSuccess: async () => qc.invalidateQueries({ queryKey: ['admin', 'skills'] }),
   });
 
@@ -38,125 +41,272 @@ export default function AdminSkillsPage() {
     onSuccess: async () => qc.invalidateQueries({ queryKey: ['admin', 'skills'] }),
   });
 
-  return (
-    <main className="container py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Manage skills</h1>
-      <p className="mt-2 text-muted-foreground">Create, publish, and organize skill categories.</p>
+  React.useEffect(() => {
+    if (!title.trim()) return;
+    if (!slug.trim()) {
+      setSlug(slugify(title));
+    }
+  }, [slug, title]);
 
-      <div className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-        <div className="text-sm font-medium">Create skill</div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Excel Basics" />
-          </div>
-          <div className="space-y-2">
-            <Label>Slug</Label>
-            <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="excel-basics" />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Description</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short description" />
-          </div>
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <select
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+  const skills = skillsQuery.data ?? [];
+  const filteredSkills = skills.filter((skill) => {
+    const haystack = `${skill.title} ${skill.slug} ${skill.description ?? ''}`.toLowerCase();
+    return haystack.includes(searchText.toLowerCase());
+  });
+
+  const createDisabled = create.isPending || !title.trim() || !slug.trim();
+
+  return (
+    <main className="space-y-6">
+      <AdminPageIntro
+        title="Manage Skills"
+        description="Define and organize the core competency matrix for learners."
+        actions={
+          <>
+            <Link
+              href="/admin"
+              className="inline-flex h-14 items-center justify-center rounded-[1.2rem] border border-[var(--site-border)] bg-[var(--site-surface-alt)] px-5 text-lg font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
             >
-              <option value="draft">draft</option>
-              <option value="published">published</option>
-              <option value="archived">archived</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              onClick={() => create.mutate()}
-              disabled={create.isPending || !title.trim() || !slug.trim()}
+              Audit Overview
+            </Link>
+            <button
+              type="button"
+              onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-[1.2rem] bg-primary px-5 text-lg font-semibold text-primary-foreground shadow-[0_18px_34px_rgba(249,115,22,0.24)] transition hover:bg-primary/90"
             >
-              {create.isPending ? 'Creating…' : 'Create'}
-            </Button>
+              <Plus className="h-5 w-5" />
+              New Category
+            </button>
+          </>
+        }
+      />
+
+      <AdminSurface ref={formRef}>
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+            <Wrench className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-4xl font-semibold text-[var(--site-text)]">Create New Skill</h2>
+            <p className="mt-2 text-lg text-[var(--site-muted)]">
+              Add reusable skill buckets for courses, tracks, and curriculum mapping.
+            </p>
           </div>
         </div>
+
+        <div className="mt-8 grid gap-5 xl:grid-cols-2">
+          <label className="space-y-3">
+            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-subtle)]">
+              Skill Title
+            </div>
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="e.g. Advanced SQL Data Modeling"
+              className={inputClassName}
+            />
+          </label>
+
+          <label className="space-y-3">
+            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-subtle)]">
+              URL Slug
+            </div>
+            <input
+              value={slug}
+              onChange={(event) => setSlug(event.target.value)}
+              placeholder="advanced-sql-data-modeling"
+              className={inputClassName}
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="space-y-3">
+            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-subtle)]">
+              Description
+            </div>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              rows={5}
+              placeholder="Brief overview of the skill requirements and learning outcomes..."
+              className={textareaClassName}
+            />
+          </label>
+
+          <div className="space-y-5">
+            <label className="block space-y-3">
+              <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-subtle)]">
+                Status
+              </div>
+              <select
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as 'draft' | 'published' | 'archived')
+                }
+                className={inputClassName}
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => create.mutate()}
+              disabled={createDisabled}
+              className="inline-flex h-16 w-full items-center justify-center rounded-[1.2rem] bg-primary px-6 text-lg font-semibold text-primary-foreground shadow-[0_18px_34px_rgba(249,115,22,0.24)] transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {create.isPending ? 'Creating...' : 'Add Skill to Library'}
+            </button>
+          </div>
+        </div>
+
         {create.isError ? (
-          <div className="mt-3 rounded-md border bg-muted p-3 text-sm">
+          <div className="mt-5 rounded-[1.2rem] border border-[var(--site-danger)]/20 bg-[var(--site-danger-soft)] px-4 py-3 text-sm text-[var(--site-danger)]">
             {create.error instanceof Error ? create.error.message : 'Create failed'}
           </div>
         ) : null}
-      </div>
+      </AdminSurface>
 
-      <div className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-        <div className="text-sm font-medium">Skills</div>
-
-        {q.isLoading ? (
-          <div className="mt-4 text-sm text-muted-foreground">Loading…</div>
-        ) : q.isError ? (
-          <div className="mt-4 text-sm text-muted-foreground">
-            {q.error instanceof Error ? q.error.message : 'Failed to load'}
+      <AdminSurface>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-4xl font-semibold text-[var(--site-text)]">Existing Skills</h2>
+            <p className="mt-2 text-lg text-[var(--site-muted)]">Showing {filteredSkills.length} skills</p>
           </div>
-        ) : (q.data?.length ?? 0) === 0 ? (
-          <div className="mt-4 text-sm text-muted-foreground">No skills.</div>
+          <div className="flex items-center gap-3 rounded-[1.1rem] border border-[var(--site-border)] bg-[var(--site-surface-alt)] px-4 py-3">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="Filter title, slug or description..."
+              className="w-72 bg-transparent text-base text-[var(--site-text)] outline-none placeholder:text-[var(--site-subtle)]"
+            />
+          </div>
+        </div>
+
+        {skillsQuery.isLoading ? (
+          <div className="mt-6 text-lg text-[var(--site-muted)]">Loading skills...</div>
+        ) : skillsQuery.isError ? (
+          <div className="mt-6 text-lg text-[var(--site-muted)]">
+            {skillsQuery.error instanceof Error ? skillsQuery.error.message : 'Failed to load skills'}
+          </div>
+        ) : filteredSkills.length === 0 ? (
+          <div className="mt-6 rounded-[1.5rem] border border-[var(--site-border)] bg-[var(--site-surface-alt)] p-6 text-lg text-[var(--site-muted)]">
+            No skills match the current filter.
+          </div>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="py-2">Title</th>
-                  <th className="py-2">Slug</th>
-                  <th className="py-2">Status</th>
-                  <th className="py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(q.data ?? []).map((s) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="py-2 pr-3">
-                      <Input
-                        defaultValue={s.title}
-                        onBlur={(e) =>
-                          e.target.value !== s.title &&
-                          update.mutate({ id: s.id, patch: { title: e.target.value } })
+          <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-[var(--site-border)]">
+            <div className="grid grid-cols-[minmax(0,1.35fr)_240px_220px_160px] bg-[var(--site-surface-alt)] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-subtle)]">
+              <div>Skill Name</div>
+              <div>Slug</div>
+              <div>Status</div>
+              <div className="text-right">Actions</div>
+            </div>
+
+            <div className="divide-y divide-[var(--site-border)]">
+              {filteredSkills.map((skill, index) => (
+                <div
+                  key={skill.id}
+                  className="grid grid-cols-[minmax(0,1.35fr)_240px_220px_160px] items-center gap-4 px-6 py-5"
+                >
+                    <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--site-surface-alt)] text-lg font-semibold text-primary">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <input
+                        defaultValue={skill.title}
+                        onBlur={(event) =>
+                          event.target.value.trim() !== skill.title &&
+                          update.mutate({ id: skill.id, patch: { title: event.target.value.trim() } })
                         }
+                        className="w-full bg-transparent text-2xl font-semibold text-[var(--site-text)] outline-none"
                       />
-                    </td>
-                    <td className="py-2 pr-3">
-                      <Input
-                        defaultValue={s.slug}
-                        onBlur={(e) =>
-                          e.target.value !== s.slug &&
-                          update.mutate({ id: s.id, patch: { slug: e.target.value } })
+                      <textarea
+                        defaultValue={skill.description ?? ''}
+                        rows={2}
+                        onBlur={(event) =>
+                          event.target.value !== (skill.description ?? '') &&
+                          update.mutate({ id: skill.id, patch: { description: event.target.value } })
                         }
+                        className="mt-2 w-full resize-none bg-transparent text-sm leading-7 text-[var(--site-muted)] outline-none"
                       />
-                    </td>
-                    <td className="py-2 pr-3">
-                      <select
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                        defaultValue={s.status}
-                        onChange={(e) => update.mutate({ id: s.id, patch: { status: e.target.value } })}
-                      >
-                        <option value="draft">draft</option>
-                        <option value="published">published</option>
-                        <option value="archived">archived</option>
-                      </select>
-                    </td>
-                    <td className="py-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => remove.mutate(s.id)}
-                        disabled={remove.isPending}
-                      >
-                        Archive
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+
+                  <input
+                    defaultValue={skill.slug}
+                    onBlur={(event) =>
+                      event.target.value.trim() !== skill.slug &&
+                      update.mutate({ id: skill.id, patch: { slug: event.target.value.trim() } })
+                    }
+                    className="rounded-[1rem] border border-primary/10 bg-primary/10 px-4 py-3 font-mono text-lg text-primary outline-none"
+                  />
+
+                  <div className="flex items-center gap-3">
+                    <select
+                      defaultValue={skill.status}
+                      onChange={(event) => update.mutate({ id: skill.id, patch: { status: event.target.value } })}
+                      className={inputClassName}
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                    <AdminStatusPill tone={statusTone(skill.status)}>
+                      {skill.status.toUpperCase()}
+                    </AdminStatusPill>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => remove.mutate(skill.id)}
+                      disabled={remove.isPending}
+                      className="rounded-[1rem] border border-[var(--site-border)] bg-[var(--site-surface-alt)] px-4 py-3 text-sm font-semibold text-[var(--site-muted)] transition hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-text)] disabled:opacity-60"
+                    >
+                      Archive
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
+
+        {(update.isError || remove.isError) ? (
+          <div className="mt-5 rounded-[1.2rem] border border-[var(--site-danger)]/20 bg-[var(--site-danger-soft)] px-4 py-3 text-sm text-[var(--site-danger)]">
+            {update.error instanceof Error
+              ? update.error.message
+              : remove.error instanceof Error
+                ? remove.error.message
+                : 'Update failed'}
+          </div>
+        ) : null}
+      </AdminSurface>
     </main>
   );
 }
 
+const inputClassName =
+  'h-14 w-full rounded-[1rem] border border-[var(--site-border)] bg-[var(--site-surface-alt)] px-4 text-base text-[var(--site-text)] outline-none transition placeholder:text-[var(--site-subtle)] focus:border-primary/35';
+
+const textareaClassName =
+  'min-h-[150px] w-full rounded-[1rem] border border-[var(--site-border)] bg-[var(--site-surface-alt)] px-4 py-4 text-base text-[var(--site-text)] outline-none transition placeholder:text-[var(--site-subtle)] focus:border-primary/35';
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function statusTone(status: string) {
+  if (status === 'published') return 'emerald' as const;
+  if (status === 'archived') return 'slate' as const;
+  return 'orange' as const;
+}

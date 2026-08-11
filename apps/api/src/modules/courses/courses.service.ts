@@ -25,6 +25,22 @@ export class CoursesService {
     });
   }
 
+  async listPublishedInstructors() {
+    return this.prisma.instructor.findMany({
+      where: { status: ContentStatus.published, deletedAt: null },
+      orderBy: { order: 'asc' },
+    });
+  }
+
+  async getPublishedInstructorBySlug(slug: string) {
+    const instructor = await this.prisma.instructor.findFirst({
+      where: { slug, status: ContentStatus.published, deletedAt: null },
+      include: { Course: true },
+    });
+    if (!instructor) throw new NotFoundException('Instructor not found');
+    return instructor;
+  }
+
   async getPublishedBySlug(slug: string) {
     const course = await this.prisma.course.findUnique({
       where: { slug },

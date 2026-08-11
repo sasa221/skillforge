@@ -32,6 +32,8 @@ export class LessonChatDto {
       'summarize',
       'hint',
       'quiz_me',
+      'study_plan',
+      'check_my_answer',
       'explain_wrong_answer',
     ],
     default: 'explain',
@@ -44,6 +46,8 @@ export class LessonChatDto {
     'summarize',
     'hint',
     'quiz_me',
+    'study_plan',
+    'check_my_answer',
     'explain_wrong_answer',
   ])
   mode?: AiMode;

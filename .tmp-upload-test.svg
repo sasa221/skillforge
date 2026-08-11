@@ -1,0 +1,8 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" rx="28" fill="#eaf4ff"/>
+  <circle cx="124" cy="110" r="42" fill="#2f9bff" opacity="0.18"/>
+  <rect x="84" y="180" width="472" height="18" rx="9" fill="#10213c" opacity="0.12"/>
+  <rect x="84" y="214" width="320" height="14" rx="7" fill="#10213c" opacity="0.1"/>
+  <text x="84" y="120" font-family="Arial" font-size="38" font-weight="700" fill="#10213c">SkillForge Upload Test</text>
+  <text x="84" y="160" font-family="Arial" font-size="18" fill="#4b6487">Media asset upload from admin flow</text>
+</svg>
