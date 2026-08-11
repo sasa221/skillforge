@@ -21,6 +21,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { EventsModule } from './modules/events/events.module';
 import { LearningAccessModule } from './modules/learning-access/learning-access.module';
+import { CodeExecutionModule } from './modules/code-execution/code-execution.module';
 import { EmailVerifiedGuard } from './modules/auth/guards/email-verified.guard';
 
 @Module({
@@ -52,6 +53,7 @@ import { EmailVerifiedGuard } from './modules/auth/guards/email-verified.guard';
     QuizzesModule,
     AiModule,
     AdminModule,
+    CodeExecutionModule,
   ],
   providers: [
     EmailVerifiedGuard,

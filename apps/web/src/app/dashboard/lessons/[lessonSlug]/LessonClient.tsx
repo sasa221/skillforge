@@ -38,6 +38,7 @@ import { ReadingProgressBar } from '@/components/lesson/ReadingProgressBar';
 import { LessonNavigation } from '@/components/lesson/LessonNavigation';
 import { CompletionCelebration } from '@/components/lesson/CompletionCelebration';
 import { LessonNotes } from '@/components/lesson/LessonNotes';
+import { CodePlayground } from '@/components/lesson/CodePlayground';
 
 type QuizAnswerState = Record<string, string | string[]>;
 
@@ -74,22 +75,12 @@ function BlockRenderer({ block }: { block: LessonBlock }) {
       );
     case 'code_block':
       return (
-        <div className="rounded-[1.7rem] border border-[var(--site-border)] bg-[var(--site-surface)] p-6 shadow-[0_18px_36px_var(--site-shadow)]">
-          <div className="rounded-[1.5rem] bg-[var(--site-text)] p-5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] relative group">
-            <button
-              onClick={() => navigator.clipboard.writeText(content.code ?? '')}
-              className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity rounded-md bg-white/10 px-2 py-1 text-xs text-white hover:bg-white/20"
-            >
-              Copy
-            </button>
-            <div className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--site-primary-soft)]">
-              Code example
-            </div>
-            <pre className="overflow-auto whitespace-pre-wrap break-words text-sm leading-7 text-white/90">
-              <code>{content.code ?? ''}</code>
-            </pre>
-          </div>
-        </div>
+        <CodePlayground
+          initialCode={content.code ?? ''}
+          language={(content.language as any) ?? 'javascript'}
+          title={content.title ?? 'Interactive Lesson Sandbox'}
+          testCases={content.testCases}
+        />
       );
     case 'callout': {
       const variant = String(content.variant ?? 'note').toLowerCase();

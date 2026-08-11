@@ -550,3 +550,19 @@ export const adminApi = {
   },
 };
 
+export const codeExecutionApi = {
+  execute: (input: { language: string; code: string; testCases?: any[] }) =>
+    apiFetch<{
+      stdout: string;
+      stderr: string;
+      executionTimeMs: number;
+      passed: boolean;
+      testResults: any[];
+      previewHtml?: string;
+    }>('/code/execute', {
+      method: 'POST',
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+    }),
+};
+
