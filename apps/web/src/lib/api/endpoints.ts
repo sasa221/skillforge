@@ -93,6 +93,14 @@ export const coursesApi = {
       body: JSON.stringify(body),
       headers: { 'content-type': 'application/json' },
     }),
+  announcements: (courseId: string) =>
+    apiFetch<{ announcements: any[] }>(`/courses/${courseId}/announcements`, { method: 'GET', auth: false }),
+  createAnnouncement: (courseId: string, body: { title: string; message: string; isUrgent?: boolean }) =>
+    apiFetch<any>(`/courses/${courseId}/announcements`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+    }),
 };
 
 export const instructorsApi = {

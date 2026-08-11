@@ -80,6 +80,20 @@ export class CoursesController {
     return this.courses.addDiscussionReply(req.user.sub, courseId, discussionId, dto);
   }
 
+  @ApiOkResponse({ description: 'Get course announcements' })
+  @Get(':courseId/announcements')
+  async getAnnouncements(@Param('courseId') courseId: string) {
+    return this.courses.getCourseAnnouncements(courseId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Create course announcement' })
+  @Post(':courseId/announcements')
+  async createAnnouncement(@Req() req: any, @Param('courseId') courseId: string, @Body() dto: { title: string; message: string; isUrgent?: boolean }) {
+    return this.courses.createCourseAnnouncement(req.user.sub, courseId, dto);
+  }
+
   @ApiBearerAuth()
   @UseGuards(JwtAccessGuard, RolesGuard)
   @Roles(UserRoleType.admin, UserRoleType.content_manager, UserRoleType.super_admin)

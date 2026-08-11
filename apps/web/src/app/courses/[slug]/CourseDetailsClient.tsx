@@ -23,6 +23,7 @@ import {
 import { CourseAiPanel } from '@/components/ai/CourseAiPanel';
 import { CourseArtwork } from '@/components/site/CourseArtwork';
 import { CourseDiscussionBoard } from '@/components/site/CourseDiscussionBoard';
+import { InstructorAnnouncementsPanel } from '@/components/site/InstructorAnnouncementsPanel';
 import { CourseInstructorSpotlight } from '@/components/site/CourseInstructorSpotlight';
 import { InstructorLevelPicksPanel } from '@/components/site/InstructorLevelPicksPanel';
 import { MediaVideoFrame } from '@/components/site/MediaVideoFrame';
@@ -288,6 +289,7 @@ export function CourseDetailsClient({
               </div>
             </div>
 
+            <InstructorAnnouncementsPanel courseId={course.id} />
             <CourseReviewsSection courseId={course.id} />
             <CourseDiscussionBoard courseId={course.id} />
             

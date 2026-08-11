@@ -324,5 +324,51 @@ export class CoursesService {
 
     return reply;
   }
+
+  // Course Announcements Store
+  private announcementStore: Map<string, Array<{
+    id: string;
+    courseId: string;
+    title: string;
+    message: string;
+    isUrgent: boolean;
+    createdAt: string;
+  }>> = new Map([
+    [
+      'default',
+      [
+        {
+          id: 'ann-1',
+          courseId: 'c-1',
+          title: 'New Live Q&A Session Scheduled for Friday!',
+          message: 'Join us live this Friday at 6:00 PM GMT for an interactive code review session and module walkthrough.',
+          isUrgent: false,
+          createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+        },
+      ],
+    ],
+  ]);
+
+  async getCourseAnnouncements(courseId: string) {
+    const list = this.announcementStore.get(courseId) ?? this.announcementStore.get('default') ?? [];
+    return { announcements: list };
+  }
+
+  async createCourseAnnouncement(userId: string, courseId: string, dto: { title: string; message: string; isUrgent?: boolean }) {
+    const newAnn = {
+      id: `ann-${Date.now()}`,
+      courseId,
+      title: dto.title,
+      message: dto.message,
+      isUrgent: dto.isUrgent ?? false,
+      createdAt: new Date().toISOString(),
+    };
+
+    const current = this.announcementStore.get(courseId) ?? [...(this.announcementStore.get('default') ?? [])];
+    current.unshift(newAnn);
+    this.announcementStore.set(courseId, current);
+
+    return newAnn;
+  }
 }
 
