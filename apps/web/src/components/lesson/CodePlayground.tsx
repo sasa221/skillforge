@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Play, RotateCcw, Copy, Check, Terminal, Eye, Code2, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { Play, RotateCcw, Copy, Check, Terminal, Eye, Code2, Sparkles, CheckCircle2, XCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { codeExecutionApi } from '@/lib/api/endpoints';
 
 interface Props {
@@ -26,6 +26,7 @@ export function CodePlayground({
   const [isExecuting, setIsExecuting] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [testResults, setTestResults] = React.useState<any[]>([]);
+  const [isFullScreen, setIsFullScreen] = React.useState(false);
 
   const handleRun = async () => {
     setIsExecuting(true);
@@ -70,7 +71,13 @@ export function CodePlayground({
   };
 
   return (
-    <div className="my-8 overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl">
+    <div
+      className={
+        isFullScreen
+          ? 'fixed inset-0 z-50 overflow-auto bg-zinc-950 flex flex-col'
+          : 'my-8 overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl'
+      }
+    >
       {/* Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-900/80 px-5 py-3.5">
         <div className="flex items-center gap-3">
@@ -131,6 +138,14 @@ export function CodePlayground({
             title="Reset code"
           >
             <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={() => setIsFullScreen((prev) => !prev)}
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+            title={isFullScreen ? 'Exit Full Screen' : 'Full Screen Mode'}
+          >
+            {isFullScreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
           <button
             onClick={handleRun}

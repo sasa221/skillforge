@@ -327,6 +327,8 @@ model LessonProgress {
 
   @@unique([userId, lessonId])
   @@index([lessonId])
+  @@index([userId, completedAt])
+  @@index([lessonId, completedAt])
 }
 
 model ModuleProgress {
@@ -375,6 +377,8 @@ model QuizAttempt {
 
   @@index([userId, lessonId])
   @@index([quizId])
+  @@index([userId, passed])
+  @@index([lessonId, passed])
 }
 
 model QuizAnswer {

@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { env } from '@/lib/env';
 import { Button } from '@/components/ui/button';
+import { ShareOnSocialButtons } from './ShareOnSocialButtons';
 
 async function verifyCertificate(code: string) {
   try {
@@ -55,7 +56,7 @@ export default async function VerifyCertificatePage({ params }: { params: Promis
                   <p className="text-xl font-medium">{data.courseName}</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">Date</h3>
@@ -76,6 +77,12 @@ export default async function VerifyCertificatePage({ params }: { params: Promis
                   </div>
                 </div>
               </div>
+
+              <ShareOnSocialButtons
+                code={data.code}
+                studentName={data.studentName}
+                courseName={data.courseName}
+              />
             </div>
           </div>
         ) : (
