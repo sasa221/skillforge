@@ -58,6 +58,28 @@ export class CoursesController {
     return this.courses.addCourseReview(req.user.sub, courseId, dto);
   }
 
+  @ApiOkResponse({ description: 'Get course discussion questions and Q&A' })
+  @Get(':courseId/discussions')
+  async getDiscussions(@Param('courseId') courseId: string) {
+    return this.courses.getCourseDiscussions(courseId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Post new question to course discussion board' })
+  @Post(':courseId/discussions')
+  async createDiscussion(@Req() req: any, @Param('courseId') courseId: string, @Body() dto: { title: string; content: string }) {
+    return this.courses.createCourseDiscussion(req.user.sub, courseId, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Reply to course discussion question' })
+  @Post(':courseId/discussions/:discussionId/replies')
+  async addReply(@Req() req: any, @Param('courseId') courseId: string, @Param('discussionId') discussionId: string, @Body() dto: { content: string }) {
+    return this.courses.addDiscussionReply(req.user.sub, courseId, discussionId, dto);
+  }
+
   @ApiBearerAuth()
   @UseGuards(JwtAccessGuard, RolesGuard)
   @Roles(UserRoleType.admin, UserRoleType.content_manager, UserRoleType.super_admin)

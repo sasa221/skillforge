@@ -224,5 +224,105 @@ export class CoursesService {
 
     return newReview;
   }
+
+  // Course Discussions Q&A Store
+  private discussionStore: Map<string, Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    title: string;
+    content: string;
+    createdAt: string;
+    pinnedReplyId?: string;
+    replies: Array<{
+      id: string;
+      userId: string;
+      userName: string;
+      content: string;
+      isInstructor?: boolean;
+      isAi?: boolean;
+      createdAt: string;
+    }>;
+  }>> = new Map([
+    [
+      'default',
+      [
+        {
+          id: 'disc-1',
+          userId: 'u-10',
+          userName: 'Youssef Mahmoud',
+          title: 'How do I handle asynchronous state updates in React 19?',
+          content: 'I noticed that state updates behave slightly differently when using useTransition. What is the recommended pattern?',
+          createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+          replies: [
+            {
+              id: 'rep-1',
+              userId: 'u-inst',
+              userName: 'SkillForge Instructor',
+              content: 'Great question! In React 19, useTransition allows non-blocking state updates. Keep heavy renders wrapped in startTransition.',
+              isInstructor: true,
+              createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+            },
+            {
+              id: 'rep-2',
+              userId: 'u-ai',
+              userName: 'Forge AI Tutor',
+              content: 'Additionally, server actions natively integrate with transitions to provide smooth optimistic updates.',
+              isAi: true,
+              createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+            },
+          ],
+        },
+      ],
+    ],
+  ]);
+
+  async getCourseDiscussions(courseId: string) {
+    const list = this.discussionStore.get(courseId) ?? this.discussionStore.get('default') ?? [];
+    return { discussions: list };
+  }
+
+  async createCourseDiscussion(userId: string, courseId: string, dto: { title: string; content: string }) {
+    const user = await this.prisma.userProfile.findUnique({ where: { userId } });
+    const userName = user?.fullName || 'Student';
+
+    const newDisc = {
+      id: `disc-${Date.now()}`,
+      userId,
+      userName,
+      title: dto.title,
+      content: dto.content,
+      createdAt: new Date().toISOString(),
+      replies: [],
+    };
+
+    const current = this.discussionStore.get(courseId) ?? [...(this.discussionStore.get('default') ?? [])];
+    current.unshift(newDisc);
+    this.discussionStore.set(courseId, current);
+
+    return newDisc;
+  }
+
+  async addDiscussionReply(userId: string, courseId: string, discussionId: string, dto: { content: string }) {
+    const user = await this.prisma.userProfile.findUnique({ where: { userId } });
+    const userName = user?.fullName || 'Student';
+
+    const discussions = this.discussionStore.get(courseId) ?? [...(this.discussionStore.get('default') ?? [])];
+    const disc = discussions.find((d) => d.id === discussionId);
+    if (!disc) throw new NotFoundException('Discussion not found');
+
+    const reply = {
+      id: `rep-${Date.now()}`,
+      userId,
+      userName,
+      content: dto.content,
+      createdAt: new Date().toISOString(),
+    };
+
+    disc.replies.push(reply);
+    this.discussionStore.set(courseId, discussions);
+
+    return reply;
+  }
 }
 

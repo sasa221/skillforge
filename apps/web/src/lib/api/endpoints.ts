@@ -79,6 +79,20 @@ export const coursesApi = {
       body: JSON.stringify(body),
       headers: { 'content-type': 'application/json' },
     }),
+  discussions: (courseId: string) =>
+    apiFetch<{ discussions: any[] }>(`/courses/${courseId}/discussions`, { method: 'GET', auth: false }),
+  createDiscussion: (courseId: string, body: { title: string; content: string }) =>
+    apiFetch<any>(`/courses/${courseId}/discussions`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+    }),
+  addDiscussionReply: (courseId: string, discussionId: string, body: { content: string }) =>
+    apiFetch<any>(`/courses/${courseId}/discussions/${discussionId}/replies`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+    }),
 };
 
 export const instructorsApi = {

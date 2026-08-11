@@ -22,6 +22,7 @@ import {
 
 import { CourseAiPanel } from '@/components/ai/CourseAiPanel';
 import { CourseArtwork } from '@/components/site/CourseArtwork';
+import { CourseDiscussionBoard } from '@/components/site/CourseDiscussionBoard';
 import { CourseInstructorSpotlight } from '@/components/site/CourseInstructorSpotlight';
 import { InstructorLevelPicksPanel } from '@/components/site/InstructorLevelPicksPanel';
 import { MediaVideoFrame } from '@/components/site/MediaVideoFrame';
@@ -288,6 +289,7 @@ export function CourseDetailsClient({
             </div>
 
             <CourseReviewsSection courseId={course.id} />
+            <CourseDiscussionBoard courseId={course.id} />
             
             <div className="space-y-5">
               {course.modules.map((module, moduleIndex) => {
