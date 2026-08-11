@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRoleType } from '../../prisma-enums';
 
@@ -42,6 +42,20 @@ export class CoursesController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateCourseDto) {
     return this.courses.update(id, dto);
+  }
+
+  @ApiOkResponse({ description: 'Get course reviews and average rating' })
+  @Get(':courseId/reviews')
+  async getReviews(@Param('courseId') courseId: string) {
+    return this.courses.getCourseReviews(courseId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Submit course review' })
+  @Post(':courseId/reviews')
+  async addReview(@Req() req: any, @Param('courseId') courseId: string, @Body() dto: { rating: number; comment: string }) {
+    return this.courses.addCourseReview(req.user.sub, courseId, dto);
   }
 
   @ApiBearerAuth()

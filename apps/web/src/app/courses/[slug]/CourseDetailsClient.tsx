@@ -1,8 +1,9 @@
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +13,9 @@ import {
   Layers3,
   Rocket,
   Sparkles,
+  Star,
+  MessageSquare,
+  Send,
   Target,
   Users,
 } from 'lucide-react';
@@ -283,6 +287,8 @@ export function CourseDetailsClient({
               </div>
             </div>
 
+            <CourseReviewsSection courseId={course.id} />
+            
             <div className="space-y-5">
               {course.modules.map((module, moduleIndex) => {
                 const moduleMinutes = module.lessons.reduce(
@@ -601,5 +607,138 @@ function formatDuration(totalMinutes: number): string {
 }
 
 function capitalize(value: string): string {
+  if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function CourseReviewsSection({ courseId }: { courseId: string }) {
+  const [rating, setRating] = React.useState(5);
+  const [comment, setComment] = React.useState('');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['courses', 'reviews', courseId],
+    queryFn: () => coursesApi.reviews(courseId),
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (body: { rating: number; comment: string }) => coursesApi.addReview(courseId, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses', 'reviews', courseId] });
+      setComment('');
+      toast({ title: 'Review submitted', description: 'Thank you for sharing your course feedback!' });
+    },
+  });
+
+  const reviews = data?.reviews ?? [];
+  const avgRating = data?.avgRating ?? 5.0;
+  const totalCount = data?.totalCount ?? 0;
+
+  return (
+    <div className="rounded-[2.2rem] border border-[var(--site-border)] bg-[var(--site-surface)] p-8 shadow-[0_22px_50px_var(--site-shadow)] space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--site-border)] pb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+            <Star className="h-6 w-6 fill-amber-500 text-amber-500" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-[var(--site-text)]">Student Reviews</h2>
+            <p className="text-xs text-[var(--site-muted)]">Real feedback from learners in this course</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-2xl bg-[var(--site-bg-soft)] border border-[var(--site-border)] px-5 py-3">
+          <div className="text-3xl font-extrabold text-[var(--site-text)]">{avgRating}</div>
+          <div>
+            <div className="flex items-center gap-1 text-amber-500">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? 'fill-amber-500' : 'text-zinc-600'}`} />
+              ))}
+            </div>
+            <div className="text-[11px] text-[var(--site-muted)] font-medium">{totalCount} total reviews</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Review submission form */}
+      {user ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!comment.trim()) return;
+            submitMutation.mutate({ rating, comment });
+          }}
+          className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-bg)] p-5 space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-[var(--site-text)]">Leave a Review</span>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  type="button"
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className="p-1 transition-transform hover:scale-125"
+                >
+                  <Star className={`h-5 w-5 ${star <= rating ? 'fill-amber-500 text-amber-500' : 'text-zinc-500'}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Share your experience with this course, instructor, or exercises..."
+            rows={3}
+            className="w-full rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-sm text-[var(--site-text)] focus:border-[var(--site-primary)] focus:outline-none"
+          />
+
+          <button
+            type="submit"
+            disabled={submitMutation.isPending || !comment.trim()}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-5 py-2.5 text-xs font-semibold text-white shadow-md transition hover:opacity-90 disabled:opacity-50"
+          >
+            <Send className="h-3.5 w-3.5" />
+            {submitMutation.isPending ? 'Submitting...' : 'Post Review'}
+          </button>
+        </form>
+      ) : null}
+
+      {/* Review list */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--site-bg)]" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {reviews.map((rev: any) => (
+            <div key={rev.id} className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-bg)] p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-primary)]/10 text-xs font-bold text-[var(--site-primary)]">
+                    {rev.userName.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-[var(--site-text)]">{rev.userName}</div>
+                    <div className="text-[10px] text-[var(--site-muted)]">{new Date(rev.createdAt).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-0.5 text-amber-500">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} className={`h-3.5 w-3.5 ${s <= rev.rating ? 'fill-amber-500' : 'text-zinc-700'}`} />
+                  ))}
+                </div>
+              </div>
+              <p className="text-xs leading-relaxed text-[var(--site-muted)]">{rev.comment}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

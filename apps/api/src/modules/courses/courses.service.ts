@@ -159,5 +159,70 @@ export class CoursesService {
       data: { deletedAt: new Date(), status: ContentStatus.archived },
     });
   }
+
+  // Course Reviews Store
+  private reviewsStore: Map<string, Array<{ id: string; userId: string; userName: string; rating: number; comment: string; createdAt: string }>> = new Map([
+    [
+      'default',
+      [
+        {
+          id: 'rev-1',
+          userId: 'u-1',
+          userName: 'Ahmed Hassan',
+          rating: 5,
+          comment: 'Outstanding course! The AI teacher assistant helped me clarify complex concepts instantly.',
+          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        },
+        {
+          id: 'rev-2',
+          userId: 'u-2',
+          userName: 'Sarah Mansour',
+          rating: 5,
+          comment: 'Very practical hands-on exercises and clean structured modules.',
+          createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+        },
+        {
+          id: 'rev-3',
+          userId: 'u-3',
+          userName: 'Omar El-Sayed',
+          rating: 4,
+          comment: 'Great pace and explanations. The 3D progress visualizer is amazing.',
+          createdAt: new Date(Date.now() - 86400000 * 9).toISOString(),
+        },
+      ],
+    ],
+  ]);
+
+  async getCourseReviews(courseId: string) {
+    const reviews = this.reviewsStore.get(courseId) ?? this.reviewsStore.get('default') ?? [];
+    const total = reviews.length;
+    const avgRating = total > 0 ? Number((reviews.reduce((s, r) => s + r.rating, 0) / total).toFixed(1)) : 5.0;
+
+    return {
+      avgRating,
+      totalCount: total,
+      reviews,
+    };
+  }
+
+  async addCourseReview(userId: string, courseId: string, dto: { rating: number; comment: string }) {
+    const user = await this.prisma.userProfile.findUnique({ where: { userId } });
+    const userName = user?.fullName || 'Anonymous Student';
+
+    const newReview = {
+      id: `rev-${Date.now()}`,
+      userId,
+      userName,
+      rating: Math.min(Math.max(dto.rating, 1), 5),
+      comment: dto.comment,
+      createdAt: new Date().toISOString(),
+    };
+
+    const current = this.reviewsStore.get(courseId) ?? [...(this.reviewsStore.get('default') ?? [])];
+    current.unshift(newReview);
+    this.reviewsStore.set(courseId, current);
+
+    return newReview;
+  }
 }
 

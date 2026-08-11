@@ -72,6 +72,13 @@ export const coursesApi = {
   bySlug: (slug: string) => apiFetch<CourseDetail>(`/courses/${slug}`, { method: 'GET', auth: false }),
   search: (params: { q?: string; skillSlug?: string; difficulty?: string; page?: number }) =>
     apiFetch<any>(`/courses?${new URLSearchParams(Object.entries(params).filter(([,v]) => v !== undefined) as any).toString()}`, { method: 'GET', auth: false }),
+  reviews: (courseId: string) => apiFetch<{ avgRating: number; totalCount: number; reviews: any[] }>(`/courses/${courseId}/reviews`, { method: 'GET', auth: false }),
+  addReview: (courseId: string, body: { rating: number; comment: string }) =>
+    apiFetch<any>(`/courses/${courseId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+    }),
 };
 
 export const instructorsApi = {
