@@ -1022,14 +1022,28 @@ function fallbackTextForLesson(
   },
   mode: AiMode,
   userMessage?: string,
+  userMeta?: { name?: string; email?: string; xp?: number },
 ) {
   const msgLower = (userMessage ?? '').toLowerCase();
   const isArabic = /[\u0600-\u06FF]/.test(msgLower);
+  const name = userMeta?.name ?? 'Learner';
+  const email = userMeta?.email ? ` (${userMeta.email})` : '';
+  const xp = userMeta?.xp ?? 0;
+
+  if (
+    msgLower.includes('know me') ||
+    msgLower.includes('who am i') ||
+    msgLower.includes('من انا') ||
+    msgLower.includes('مين انا') ||
+    msgLower.includes('تعرفني')
+  ) {
+    return isArabic
+      ? `نعم، طبعاً أعرفك! أنت الطالب **${name}**${email}. 🎓✨\nأنت تدرس حالياً درس **"${lesson.title}"** وحصلت على **${xp} XP** في منصة SkillForge! 🚀\nكيف يمكنني مساعدتك في دراستك اليوم؟`
+      : `Yes, of course I know you! You are **${name}**${email}. 🎓✨\nYou are currently studying **"${lesson.title}"** and have earned **${xp} XP** on SkillForge! 🚀\nHow can I assist you with your learning goals today?`;
+  }
 
   if (
     msgLower.includes('who are you') ||
-    msgLower.includes('know me') ||
-    msgLower.includes('who am i') ||
     msgLower.includes('hello') ||
     msgLower.includes('hi') ||
     msgLower.includes('من انت') ||
@@ -1038,8 +1052,8 @@ function fallbackTextForLesson(
     msgLower.includes('ازيك')
   ) {
     return isArabic
-      ? `أنا الذكاء الاصطناعي **Forge AI**، المعلم الذكي الخاص بك في منصة SkillForge! 🤖✨\nأنا هنا لمساعدتك في فهم وشرح درس **"${lesson.title}"** والإجابة على أي أسئلة تخص هذا المحتوى.`
-      : `I am **Forge AI**, your dedicated AI tutor on SkillForge! 🤖✨\nI am here to help you learn, practice, and master **"${lesson.title}"**. How can I assist you with this lesson today?`;
+      ? `أهلاً بك يا **${name}**! أنا الذكاء الاصطناعي **Forge AI**، المعلم الذكي الخاص بك في منصة SkillForge! 🤖✨\nأنا هنا لمساعدتك في فهم وشرح درس **"${lesson.title}"** والإجابة على أي سؤال.`
+      : `Hello **${name}**! I am **Forge AI**, your dedicated AI tutor on SkillForge! 🤖✨\nI am here to help you learn, practice, and master **"${lesson.title}"**. How can I assist you today?`;
   }
 
   const keyIdeas = keyIdeasFromBlocks(lesson.blocks, 3);
@@ -1480,8 +1494,9 @@ export class AiService {
       checkpointPending: learnerProgress.checkpointPending,
     });
 
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
-    const userName = profile?.fullName ?? 'Student';
+    const userName = profile?.fullName ?? user?.email?.split('@')[0] ?? 'Learner';
     const userLevel = profile?.level ?? 1;
 
     const maxContextChars = 3500;
@@ -1550,7 +1565,7 @@ export class AiService {
         assistantText = fallbackReplyFromStructured(fallbackStructured) ?? '';
         errorMessage = 'Live AI is temporarily unavailable, so this answer was generated from the current lesson content.';
       } else {
-        const fallbackText = fallbackTextForLesson(lesson, input.mode, input.message);
+        const fallbackText = fallbackTextForLesson(lesson, input.mode, input.message, { name: userName, email: user?.email, xp: profile?.xp ?? 0 });
         if (fallbackText) {
           providerStatus = 'fallback';
           assistantText = fallbackText;
@@ -2204,8 +2219,9 @@ export class AiService {
         checkpointPending: learnerProgress.checkpointPending,
       });
 
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
       const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
-      const userName = profile?.fullName ?? 'Student';
+      const userName = profile?.fullName ?? user?.email?.split('@')[0] ?? 'Learner';
       const userLevel = profile?.level ?? 1;
 
       const maxContextChars = 3500;
@@ -2268,7 +2284,7 @@ export class AiService {
       } catch (e: any) {
         // Provider unavailable - stream fallback text
         this.logger.warn(`stream provider failure user=${userId} lesson=${lesson.id}`);
-        const fallbackText = fallbackTextForLesson(lesson, input.mode, input.message);
+        const fallbackText = fallbackTextForLesson(lesson, input.mode, input.message, { name: userName, email: user?.email, xp: profile?.xp ?? 0 });
         if (fallbackText) {
           const words = fallbackText.split(' ');
           for (const word of words) {
