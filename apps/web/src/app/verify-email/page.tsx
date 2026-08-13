@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowRight, BadgeCheck, Mail } from 'lucide-react';
+import { ArrowRight, BadgeCheck, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 
 import { AuthInputField, AuthScaffold } from '@/components/auth/AuthScaffold';
 import { authApi } from '@/lib/api/client';
@@ -30,12 +30,14 @@ export default function VerifyEmailPage() {
 function VerifyEmailClient() {
   const router = useRouter();
   const search = useSearchParams();
-  const token = search.get('token');
+  const tokenFromUrl = search.get('token') ?? '';
   const next = search.get('next');
   const sessionUser = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.accessToken);
   const setSession = useAuthStore((state) => state.setSession);
 
+  const [otpInput, setOtpInput] = React.useState(tokenFromUrl);
+  const [isVerifyingOtp, setIsVerifyingOtp] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [requestState, setRequestState] = React.useState<{
     message: string;
@@ -43,7 +45,7 @@ function VerifyEmailClient() {
   } | null>(null);
   const [verificationState, setVerificationState] = React.useState<
     'idle' | 'verifying' | 'verified' | 'failed'
-  >(token ? 'verifying' : sessionUser?.isEmailVerified ? 'verified' : 'idle');
+  >(tokenFromUrl ? 'verifying' : sessionUser?.isEmailVerified ? 'verified' : 'idle');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -54,35 +56,34 @@ function VerifyEmailClient() {
 
   const continueHref = resolveWorkspaceRedirect(sessionUser, next);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    if (!token) return;
-
-    (async () => {
+  const handleVerifyToken = React.useCallback(
+    async (codeToVerify: string) => {
+      setFormError(null);
+      setIsVerifyingOtp(true);
       try {
-        await authApi.confirmEmailVerification({ token });
-        if (cancelled) return;
+        await authApi.confirmEmailVerification({ token: codeToVerify.trim() });
         if (accessToken) {
           const refreshedUser = await authApi.me();
-          if (!cancelled) {
-            setSession(accessToken, refreshedUser);
-          }
+          setSession(accessToken, refreshedUser);
         }
         setVerificationState('verified');
       } catch (error) {
-        if (!cancelled) {
-          setFormError(error instanceof Error ? error.message : 'Could not verify email');
-          setVerificationState('failed');
-        }
+        setFormError(error instanceof Error ? error.message : 'Invalid or expired 6-digit OTP code');
+        setVerificationState('failed');
+      } finally {
+        setIsVerifyingOtp(false);
       }
-    })();
+    },
+    [accessToken, setSession],
+  );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, setSession, token]);
+  React.useEffect(() => {
+    if (tokenFromUrl) {
+      void handleVerifyToken(tokenFromUrl);
+    }
+  }, [handleVerifyToken, tokenFromUrl]);
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmitRequestEmail = form.handleSubmit(async (values) => {
     setFormError(null);
     try {
       const response = await authApi.requestEmailVerification(values);
@@ -95,25 +96,11 @@ function VerifyEmailClient() {
     }
   });
 
-  if (verificationState === 'verifying') {
-    return (
-      <AuthScaffold
-        title="Verifying your email"
-        subtitle="We are confirming your email address and updating your account."
-        footer={<span>Please wait a moment…</span>}
-      >
-        <div className="rounded-[1.2rem] border border-[var(--site-border)] bg-[var(--site-surface)] p-5 text-sm text-[var(--site-muted)]">
-          Checking your secure verification link...
-        </div>
-      </AuthScaffold>
-    );
-  }
-
   if (verificationState === 'verified' || sessionUser?.isEmailVerified) {
     return (
       <AuthScaffold
-        title="Email verified"
-        subtitle="Your account is confirmed and ready to keep moving."
+        title="Email Verified"
+        subtitle="Your SkillForge account is fully confirmed."
         footer={
           <span>
             Need anything else?{' '}
@@ -124,13 +111,13 @@ function VerifyEmailClient() {
         }
       >
         <div className="space-y-6">
-          <div className="rounded-[1.2rem] border border-[var(--site-success)]/20 bg-[var(--site-success-soft)] p-5 text-sm text-[var(--site-success)]">
+          <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-400">
             <div className="flex items-start gap-3">
-              <BadgeCheck className="mt-0.5 h-5 w-5" />
+              <BadgeCheck className="mt-0.5 h-6 w-6 text-emerald-400 shrink-0" />
               <div>
-                <div className="font-semibold">Your email is confirmed.</div>
-                <div className="mt-2">
-                  You can continue with your learning workspace without any verification warnings.
+                <div className="font-bold text-base text-[var(--site-text)]">Account Verified Successfully!</div>
+                <div className="mt-1 text-xs text-[var(--site-muted)]">
+                  You now have unrestricted access to all SkillForge courses, AI tutoring, and certificates.
                 </div>
               </div>
             </div>
@@ -138,7 +125,7 @@ function VerifyEmailClient() {
 
           <Link
             href={continueHref}
-            className="inline-flex h-16 w-full items-center justify-center gap-3 rounded-[1.2rem] bg-[var(--site-primary)] text-xl font-semibold text-white shadow-[0_18px_34px_var(--site-shadow)] transition hover:bg-[var(--site-primary-strong)]"
+            className="inline-flex h-16 w-full items-center justify-center gap-3 rounded-[1.2rem] bg-[var(--site-primary)] text-lg font-semibold text-white shadow-[0_18px_34px_var(--site-shadow)] transition hover:bg-[var(--site-primary-strong)]"
           >
             Continue to your workspace
             <ArrowRight className="h-5 w-5" />
@@ -150,8 +137,8 @@ function VerifyEmailClient() {
 
   return (
     <AuthScaffold
-      title="Verify your email"
-      subtitle="Send a secure verification link to your inbox. In local development, the direct link appears here right away."
+      title="Verify Your Email"
+      subtitle="Enter the 6-digit OTP code sent to your email to verify your SkillForge account."
       footer={
         <span>
           Already verified?{' '}
@@ -161,54 +148,79 @@ function VerifyEmailClient() {
         </span>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="space-y-3">
-          <label htmlFor="email" className="text-base font-medium text-[var(--site-text)]">
-            Email Address
-          </label>
-          <AuthInputField
-            id="email"
-            type="email"
-            autoComplete="email"
-            icon={Mail}
-            placeholder="name@example.com"
-            {...form.register('email')}
-          />
-          {form.formState.errors.email?.message ? (
-            <p className="text-sm text-[var(--site-danger)]">{form.formState.errors.email.message}</p>
-          ) : null}
+      <div className="space-y-8">
+        {/* 6-Digit OTP Direct Input Box */}
+        <div className="rounded-[1.4rem] border border-[var(--site-border)] bg-[var(--site-surface)] p-6 space-y-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-500">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[var(--site-text)]">Enter 6-Digit OTP Code</h3>
+              <p className="text-xs text-[var(--site-muted)]">Check your inbox for the code</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <input
+              type="text"
+              maxLength={6}
+              placeholder="e.g. 582914"
+              value={otpInput}
+              onChange={(e) => setOtpInput(e.target.value.trim())}
+              className="w-full rounded-2xl border border-[var(--site-border)] bg-[var(--site-bg)] p-4 text-center font-mono text-2xl font-extrabold tracking-[10px] text-[var(--site-text)] focus:border-indigo-500 focus:outline-none"
+            />
+
+            <button
+              type="button"
+              disabled={isVerifyingOtp || otpInput.length < 6}
+              onClick={() => handleVerifyToken(otpInput)}
+              className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-md transition hover:bg-indigo-500 disabled:opacity-50"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {isVerifyingOtp ? 'Verifying OTP Code...' : 'Confirm OTP Code'}
+            </button>
+          </div>
         </div>
 
-        {formError ? (
-          <div className="rounded-[1.1rem] border border-[var(--site-danger)]/20 bg-[var(--site-danger-soft)] px-4 py-3 text-sm text-[var(--site-danger)]">
-            {formError}
-          </div>
-        ) : null}
+        {/* Resend OTP Form */}
+        <div className="border-t border-[var(--site-border)] pt-6 space-y-4">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--site-muted)]">
+            Didn't receive an OTP code?
+          </h4>
 
-        {requestState ? (
-          <div className="space-y-3 rounded-[1.2rem] border border-[var(--site-success)]/20 bg-[var(--site-success-soft)] p-4 text-sm text-[var(--site-success)]">
-            <p>{requestState.message}</p>
-            {requestState.debugUrl ? (
-              <Link
-                href={requestState.debugUrl}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--site-success)]/20 bg-white px-4 py-2 font-semibold text-[var(--site-success)] transition hover:bg-[var(--site-success-soft)]"
-              >
-                Open verification link
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+          <form onSubmit={onSubmitRequestEmail} className="space-y-4">
+            <AuthInputField
+              id="email"
+              type="email"
+              autoComplete="email"
+              icon={Mail}
+              placeholder="Enter your email to resend OTP"
+              {...form.register('email')}
+            />
+
+            {formError ? (
+              <div className="rounded-[1.1rem] border border-[var(--site-danger)]/20 bg-[var(--site-danger-soft)] px-4 py-3 text-xs text-[var(--site-danger)]">
+                {formError}
+              </div>
             ) : null}
-          </div>
-        ) : null}
 
-        <button
-          type="submit"
-          disabled={form.formState.isSubmitting}
-          className="inline-flex h-16 w-full items-center justify-center gap-3 rounded-[1.2rem] bg-[var(--site-primary)] text-xl font-semibold text-white shadow-[0_18px_34px_var(--site-shadow)] transition hover:bg-[var(--site-primary-strong)] disabled:opacity-70"
-        >
-          {form.formState.isSubmitting ? 'Sending verification link...' : 'Send verification link'}
-          <ArrowRight className="h-5 w-5" />
-        </button>
-      </form>
+            {requestState ? (
+              <div className="rounded-[1.2rem] border border-[var(--site-success)]/20 bg-[var(--site-success-soft)] p-4 text-xs text-[var(--site-success)]">
+                <p>{requestState.message}</p>
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-hover)] disabled:opacity-70"
+            >
+              {form.formState.isSubmitting ? 'Sending new OTP...' : 'Send new 6-Digit OTP Code'}
+            </button>
+          </form>
+        </div>
+      </div>
     </AuthScaffold>
   );
 }

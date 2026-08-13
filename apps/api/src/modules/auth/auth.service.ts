@@ -227,7 +227,7 @@ export class AuthService {
         where: { userId: user.id },
       });
 
-      const token = randomBytes(32).toString('hex');
+      const token = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       await this.prisma.passwordResetToken.create({
@@ -248,17 +248,17 @@ export class AuthService {
 
     return {
       ok: true,
-      message: 'If an account exists for this email, a password reset link has been sent.',
+      message: 'If an account exists for this email, a 6-digit OTP code has been sent.',
     };
   }
 
   async confirmPasswordReset(dto: ConfirmPasswordResetDto) {
     const resetRecord = await this.prisma.passwordResetToken.findUnique({
-      where: { token: dto.token },
+      where: { token: dto.token.trim() },
     });
 
     if (!resetRecord || resetRecord.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired password reset token');
+      throw new BadRequestException('Invalid or expired 6-digit OTP code');
     }
 
     const newHash = await argon2.hash(dto.newPassword);
@@ -287,7 +287,7 @@ export class AuthService {
         where: { userId: user.id },
       });
 
-      token = randomBytes(32).toString('hex');
+      token = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       await this.prisma.emailVerificationToken.create({
@@ -319,11 +319,11 @@ export class AuthService {
 
   async confirmEmailVerification(token: string) {
     const record = await this.prisma.emailVerificationToken.findUnique({
-      where: { token },
+      where: { token: token.trim() },
     });
 
     if (!record || record.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired verification token');
+      throw new BadRequestException('Invalid or expired 6-digit OTP code');
     }
 
     await this.prisma.user.update({

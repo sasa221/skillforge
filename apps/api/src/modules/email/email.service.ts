@@ -139,30 +139,37 @@ export class EmailService {
   }
 
   /**
-   * Send Email Verification Email
+   * Send Email Verification Email with 6-Digit OTP
    */
   async sendEmailVerification(email: string, token: string, name?: string) {
     const verifyUrl = `${this.webUrl}/verify-email?token=${encodeURIComponent(token)}`;
-    const subject = 'Verify your SkillForge account';
+    const subject = `${token} is your SkillForge Email Verification Code`;
     const htmlContent = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 40px 20px; border-radius: 16px; max-width: 600px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 24px;">
           <h1 style="color: #6366f1; font-size: 28px; margin: 0; font-weight: 800; letter-spacing: -0.5px;">SkillForge</h1>
           <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">AI-Powered Learning Platform</p>
         </div>
-        <div style="background-color: #1e293b; padding: 32px; border-radius: 12px; border: 1px solid #334155;">
-          <h2 style="color: #f8fafc; font-size: 20px; margin-top: 0;">Welcome to SkillForge${name ? `, ${name}` : ''}!</h2>
-          <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6;">
-            Thank you for registering. Please verify your email address to unlock full access to courses, AI tutoring, and certificates.
+        <div style="background-color: #1e293b; padding: 32px; border-radius: 12px; border: 1px solid #334155; text-align: center;">
+          <h2 style="color: #f8fafc; font-size: 20px; margin-top: 0; font-weight: 700;">Welcome to SkillForge${name ? `, ${name}` : ''}!</h2>
+          <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6; text-align: left;">
+            Enter the 6-digit OTP verification code below on the website to confirm your email address and activate full access to courses, AI tutoring, and certificates:
           </p>
-          <div style="text-align: center; margin: 32px 0;">
+
+          <div style="margin: 28px 0;">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Your 6-Digit Verification Code (OTP)</p>
+            <div style="background-color: #0f172a; border: 2px dashed #6366f1; border-radius: 16px; padding: 18px 24px; font-size: 38px; font-weight: 800; color: #818cf8; letter-spacing: 12px; display: inline-block; font-mono: monospace;">
+              ${token}
+            </div>
+          </div>
+
+          <div style="margin: 28px 0;">
             <a href="${verifyUrl}" target="_blank" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 10px 20px -10px #6366f1;">
-              Verify Email Address
+              Verify Email on Website
             </a>
           </div>
-          <p style="color: #64748b; font-size: 13px; margin-bottom: 0;">
-            If the button doesn't work, copy and paste this link in your browser:<br/>
-            <a href="${verifyUrl}" style="color: #818cf8; word-break: break-all;">${verifyUrl}</a>
+          <p style="color: #64748b; font-size: 12px; margin-bottom: 0; text-align: left;">
+            If you did not create a SkillForge account, please ignore this email.
           </p>
         </div>
         <div style="text-align: center; margin-top: 24px; color: #64748b; font-size: 12px;">
@@ -180,33 +187,37 @@ export class EmailService {
   }
 
   /**
-   * Send Password Reset Email
+   * Send Password Reset Email with 6-Digit OTP
    */
   async sendPasswordReset(email: string, token: string, name?: string) {
     const resetUrl = `${this.webUrl}/reset-password?token=${encodeURIComponent(token)}`;
-    const subject = 'Reset your SkillForge password';
+    const subject = `${token} is your SkillForge Password Reset OTP`;
     const htmlContent = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 40px 20px; border-radius: 16px; max-width: 600px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 24px;">
           <h1 style="color: #6366f1; font-size: 28px; margin: 0; font-weight: 800; letter-spacing: -0.5px;">SkillForge</h1>
           <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">Security Notification</p>
         </div>
-        <div style="background-color: #1e293b; padding: 32px; border-radius: 12px; border: 1px solid #334155;">
-          <h2 style="color: #f8fafc; font-size: 20px; margin-top: 0;">Password Reset Request</h2>
-          <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6;">
-            We received a request to reset your password for your SkillForge account. Click the button below to set a new password:
+        <div style="background-color: #1e293b; padding: 32px; border-radius: 12px; border: 1px solid #334155; text-align: center;">
+          <h2 style="color: #f8fafc; font-size: 20px; margin-top: 0; font-weight: 700;">Password Reset OTP Code</h2>
+          <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6; text-align: left;">
+            Use the 6-digit OTP code below to reset your password on the website:
           </p>
-          <div style="text-align: center; margin: 32px 0;">
+
+          <div style="margin: 28px 0;">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Your Password Reset OTP</p>
+            <div style="background-color: #0f172a; border: 2px dashed #ef4444; border-radius: 16px; padding: 18px 24px; font-size: 38px; font-weight: 800; color: #f87171; letter-spacing: 12px; display: inline-block; font-mono: monospace;">
+              ${token}
+            </div>
+          </div>
+
+          <div style="margin: 28px 0;">
             <a href="${resetUrl}" target="_blank" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #ffffff; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 10px 20px -10px #ef4444;">
-              Reset Password
+              Open Reset Password Page
             </a>
           </div>
-          <p style="color: #94a3b8; font-size: 13px;">
-            This link is valid for 1 hour. If you did not request a password reset, you can safely ignore this email.
-          </p>
-          <p style="color: #64748b; font-size: 13px; margin-bottom: 0;">
-            If the button doesn't work, copy and paste this link in your browser:<br/>
-            <a href="${resetUrl}" style="color: #f87171; word-break: break-all;">${resetUrl}</a>
+          <p style="color: #94a3b8; font-size: 13px; text-align: left;">
+            This OTP code is valid for 1 hour. If you did not request a password reset, you can safely ignore this email.
           </p>
         </div>
         <div style="text-align: center; margin-top: 24px; color: #64748b; font-size: 12px;">
