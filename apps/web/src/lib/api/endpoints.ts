@@ -602,6 +602,20 @@ export const codeExecutionApi = {
       body: JSON.stringify({ code, language }),
       headers: { 'content-type': 'application/json' },
     }),
+  rooms: () => apiFetch<any[]>('/code/rooms', { method: 'GET' }),
+  createRoom: (input: { title: string; language: string; hostName?: string; initialCode?: string }) =>
+    apiFetch<any>('/code/rooms', {
+      method: 'POST',
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+    }),
+  getRoom: (id: string) => apiFetch<any>(`/code/rooms/${id}`, { method: 'GET' }),
+  syncRoom: (id: string, input: { code?: string; message?: { sender: string; text: string } }) =>
+    apiFetch<any>(`/code/rooms/${id}/sync`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+    }),
 };
 
 export const authSessionsApi = {

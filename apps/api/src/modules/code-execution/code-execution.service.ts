@@ -212,10 +212,100 @@ export class CodeExecutionService {
       ok: execResult.passed,
       challengeId,
       xpAwarded: execResult.passed ? challenge.xpAward : 0,
-      executionTimeMs: execResult.executionTimeMs,
-      stdout: execResult.stdout,
-      stderr: execResult.stderr,
       testResults: execResult.testResults,
     };
+  }
+
+  private rooms: Array<{
+    id: string;
+    title: string;
+    language: SupportedLanguage;
+    hostName: string;
+    code: string;
+    participantsCount: number;
+    createdAt: string;
+    chatMessages: Array<{ sender: string; text: string; time: string }>;
+  }> = [
+    {
+      id: 'room-js-algorithms',
+      title: 'JavaScript Data Structures & Pair Coding',
+      language: 'javascript',
+      hostName: 'Sarah Connor',
+      code: `// Pair coding session: Binary Search Tree Implementation\nclass Node {\n  constructor(val) {\n    this.val = val;\n    this.left = null;\n    this.right = null;\n  }\n}\n\nconsole.log('Tree node initialized.');`,
+      participantsCount: 3,
+      createdAt: new Date().toISOString(),
+      chatMessages: [
+        { sender: 'Sarah Connor', text: 'Hey everyone! Let us work on BST insertion logic.', time: '10:14 AM' },
+        { sender: 'Alex River', text: 'I am looking at the node constructor right now.', time: '10:15 AM' },
+      ],
+    },
+    {
+      id: 'room-py-data-science',
+      title: 'Python Pandas & Data Analysis Workshop',
+      language: 'python',
+      hostName: 'Dr. Michael Vance',
+      code: `# Live Python Data Science Sandbox\nimport math\n\ndef calculate_statistics(data):\n    mean = sum(data) / len(data)\n    print(f"Mean: {mean}")\n\ncalculate_statistics([12, 45, 67, 89, 23])`,
+      participantsCount: 5,
+      createdAt: new Date().toISOString(),
+      chatMessages: [
+        { sender: 'Dr. Michael Vance', text: 'Welcome! Test the mean function with your own datasets.', time: '10:20 AM' },
+      ],
+    },
+  ];
+
+  getCodeRooms() {
+    return this.rooms;
+  }
+
+  createCodeRoom(dto: { title: string; language: SupportedLanguage; hostName?: string; initialCode?: string }) {
+    const newRoom = {
+      id: `room-${Date.now().toString(36)}`,
+      title: dto.title,
+      language: dto.language ?? 'javascript',
+      hostName: dto.hostName ?? 'Anonymous Learner',
+      code: dto.initialCode ?? `// Live Code Room: ${dto.title}\nconsole.log('Welcome to live pair programming!');`,
+      participantsCount: 1,
+      createdAt: new Date().toISOString(),
+      chatMessages: [
+        { sender: 'System', text: `Room "${dto.title}" created. Invite peers to pair code live!`, time: 'Just now' },
+      ],
+    };
+    this.rooms.unshift(newRoom);
+    return newRoom;
+  }
+
+  getCodeRoom(id: string) {
+    const room = this.rooms.find((r) => r.id === id);
+    if (!room) {
+      return {
+        id,
+        title: 'Custom Live Sandbox',
+        language: 'javascript' as SupportedLanguage,
+        hostName: 'Peer Learner',
+        code: `// Live Multiplayer Coding Sandbox\nconsole.log("Ready to pair code!");`,
+        participantsCount: 1,
+        createdAt: new Date().toISOString(),
+        chatMessages: [],
+      };
+    }
+    return room;
+  }
+
+  syncCodeRoom(id: string, dto: { code?: string; message?: { sender: string; text: string } }) {
+    const room = this.rooms.find((r) => r.id === id);
+    if (room) {
+      if (typeof dto.code === 'string') {
+        room.code = dto.code;
+      }
+      if (dto.message) {
+        room.chatMessages.push({
+          sender: dto.message.sender,
+          text: dto.message.text,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        });
+      }
+      return room;
+    }
+    return { ok: true, code: dto.code };
   }
 }

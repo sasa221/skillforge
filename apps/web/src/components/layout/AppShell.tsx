@@ -23,6 +23,7 @@ const baseNavItems = [
   { href: '/dashboard/calendar', label: 'Calendar' },
   { href: '/dashboard/skills', label: 'Skill Map' },
   { href: '/dashboard/challenges', label: 'Challenges ⚔️' },
+  { href: '/dashboard/code-rooms', label: 'Code Rooms 👥' },
   { href: '/dashboard/courses', label: 'My Courses' },
   { href: '/dashboard/achievements', label: 'Achievements' },
   { href: '/dashboard/leaderboard', label: 'Leaderboard' },
