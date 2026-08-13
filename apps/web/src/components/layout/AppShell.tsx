@@ -68,6 +68,17 @@ function DefaultDashboardShell({
 
   return (
     <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-text)] transition-colors">
+      {user && !user.isEmailVerified && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-center text-xs font-semibold text-amber-400 flex items-center justify-center gap-2">
+          <span>⚠️ Account email is unverified. Please confirm your 6-digit OTP code to unlock all features.</span>
+          <Link
+            href={verificationHref}
+            className="rounded-lg bg-amber-500/20 border border-amber-500/30 px-3 py-1 font-bold text-amber-300 hover:bg-amber-500/30 transition"
+          >
+            Verify Now
+          </Link>
+        </div>
+      )}
       <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)] backdrop-blur">
         <header className="container flex h-16 items-center justify-between gap-4">
           <Link href="/dashboard" className="flex items-center gap-3">

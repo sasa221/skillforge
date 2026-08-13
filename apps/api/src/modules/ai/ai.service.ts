@@ -1021,7 +1021,27 @@ function fallbackTextForLesson(
     blocks: Array<{ type: string; content: any }>;
   },
   mode: AiMode,
+  userMessage?: string,
 ) {
+  const msgLower = (userMessage ?? '').toLowerCase();
+  const isArabic = /[\u0600-\u06FF]/.test(msgLower);
+
+  if (
+    msgLower.includes('who are you') ||
+    msgLower.includes('know me') ||
+    msgLower.includes('who am i') ||
+    msgLower.includes('hello') ||
+    msgLower.includes('hi') ||
+    msgLower.includes('من انت') ||
+    msgLower.includes('مين انت') ||
+    msgLower.includes('مرحبا') ||
+    msgLower.includes('ازيك')
+  ) {
+    return isArabic
+      ? `أنا الذكاء الاصطناعي **Forge AI**، المعلم الذكي الخاص بك في منصة SkillForge! 🤖✨\nأنا هنا لمساعدتك في فهم وشرح درس **"${lesson.title}"** والإجابة على أي أسئلة تخص هذا المحتوى.`
+      : `I am **Forge AI**, your dedicated AI tutor on SkillForge! 🤖✨\nI am here to help you learn, practice, and master **"${lesson.title}"**. How can I assist you with this lesson today?`;
+  }
+
   const keyIdeas = keyIdeasFromBlocks(lesson.blocks, 3);
   const objective = firstNonEmpty(lesson.learningObjective, keyIdeas[0], lesson.title);
 
@@ -1517,7 +1537,7 @@ export class AiService {
         assistantText = fallbackReplyFromStructured(fallbackStructured) ?? '';
         errorMessage = 'Live AI is temporarily unavailable, so this answer was generated from the current lesson content.';
       } else {
-        const fallbackText = fallbackTextForLesson(lesson, input.mode);
+        const fallbackText = fallbackTextForLesson(lesson, input.mode, input.message);
         if (fallbackText) {
           providerStatus = 'fallback';
           assistantText = fallbackText;
@@ -2235,7 +2255,7 @@ export class AiService {
       } catch (e: any) {
         // Provider unavailable - stream fallback text
         this.logger.warn(`stream provider failure user=${userId} lesson=${lesson.id}`);
-        const fallbackText = fallbackTextForLesson(lesson, input.mode);
+        const fallbackText = fallbackTextForLesson(lesson, input.mode, input.message);
         if (fallbackText) {
           const words = fallbackText.split(' ');
           for (const word of words) {

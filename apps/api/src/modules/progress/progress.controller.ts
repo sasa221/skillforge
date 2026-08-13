@@ -13,7 +13,7 @@ export class ProgressController {
   @ApiBearerAuth()
   @UseGuards(JwtAccessGuard, EmailVerifiedGuard)
   @ApiOkResponse({ description: 'Dashboard summary' })
-  @Get()
+  @Get(['', 'me/dashboard'])
   async dashboard(@Req() req: any) {
     return this.progress.dashboard(req.user.sub);
   }
@@ -37,7 +37,7 @@ export class ProgressController {
   @ApiBearerAuth()
   @UseGuards(JwtAccessGuard, EmailVerifiedGuard)
   @ApiOkResponse({ description: 'Profile progress summary' })
-  @Get('profile-summary')
+  @Get(['profile-summary', 'me/profile'])
   async profile(@Req() req: any) {
     return this.progress.profileSummary(req.user.sub);
   }
