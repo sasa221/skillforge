@@ -188,6 +188,7 @@ async function ensureInitialContentRevision(input: {
 
   await prisma.contentRevision.create({
     data: {
+      id: `revision_${input.target}_${input.courseId ?? input.moduleId ?? input.lessonId ?? input.quizId}`,
       target: input.target,
       actorId: input.actorId,
       courseId: input.courseId ?? null,
@@ -884,6 +885,8 @@ async function upsertSiteSurfaces() {
         status: ContentStatus.published,
       },
       create: {
+        id: `site_surface_${surface.slug}`,
+        updatedAt: new Date(),
         slug: surface.slug,
         title: surface.title,
         eyebrow: surface.eyebrow,
@@ -998,7 +1001,7 @@ async function seedContent(actorId: string, users: { instructorUser: { id: strin
   ] as const;
 
   const mediaAssetRecords = await Promise.all(
-    mediaAssets.map((asset) =>
+    mediaAssets.map((asset, index) =>
       prisma.mediaAsset.upsert({
         where: { url: asset.url },
         update: {
@@ -1012,6 +1015,8 @@ async function seedContent(actorId: string, users: { instructorUser: { id: strin
           deletedAt: null,
         },
         create: {
+          id: `media_asset_${index + 1}`,
+          updatedAt: new Date(),
           ...asset,
           durationSeconds: 'durationSeconds' in asset ? asset.durationSeconds ?? null : null,
           status: ContentStatus.published,
@@ -1021,7 +1026,7 @@ async function seedContent(actorId: string, users: { instructorUser: { id: strin
   );
 
   const instructorRecords = await Promise.all(
-    instructors.map((instructor) =>
+    instructors.map((instructor, index) =>
       prisma.instructor.upsert({
         where: { slug: instructor.slug },
         update: {
@@ -1037,6 +1042,8 @@ async function seedContent(actorId: string, users: { instructorUser: { id: strin
           deletedAt: null,
         },
         create: {
+          id: `instructor_${index + 1}`,
+          updatedAt: new Date(),
           ...instructor,
           avatarAssetId:
             mediaAssetRecords.find((record) => record.title === `${instructor.fullName} Avatar`)?.id ?? null,
