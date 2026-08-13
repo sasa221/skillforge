@@ -1045,16 +1045,29 @@ function fallbackTextForLesson(
   const keyIdeas = keyIdeasFromBlocks(lesson.blocks, 3);
   const objective = firstNonEmpty(lesson.learningObjective, keyIdeas[0], lesson.title);
 
-  if (mode === 'explain') {
-    return [
-      `Here is the clearest way to approach "${lesson.title}":`,
-      objective ? `1. Main idea: ${objective}` : null,
-      keyIdeas[0] ? `2. Focus first on: ${keyIdeas[0]}` : null,
-      keyIdeas[1] ? `3. Then connect it to: ${keyIdeas[1]}` : null,
-      '4. Try saying the idea back in your own words before moving on.',
-    ]
-      .filter(Boolean)
-      .join('\n');
+  if (userMessage && userMessage.trim().length > 0) {
+    const cleanQ = userMessage.trim();
+    if (isArabic) {
+      return [
+        `**إجابةForge AI على سؤالك:** "${cleanQ}"`,
+        objective ? `📌 **المفهوم الرئيسي لدرس (${lesson.title}):** ${objective}` : null,
+        keyIdeas[0] ? `💡 **التركيز الأساسي:** ${keyIdeas[0]}` : null,
+        keyIdeas[1] ? `🔍 **تفاصيل إضافية:** ${keyIdeas[1]}` : null,
+        `إذا كان لديك أي سؤال إضافي حول هذا الموضوع، يسعدني الإجابة عليه فوراً!`,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+    } else {
+      return [
+        `**Forge AI Answer to your question:** "${cleanQ}"`,
+        objective ? `📌 **Core Concept of (${lesson.title}):** ${objective}` : null,
+        keyIdeas[0] ? `💡 **Key Takeaway:** ${keyIdeas[0]}` : null,
+        keyIdeas[1] ? `🔍 **Practical Detail:** ${keyIdeas[1]}` : null,
+        `Feel free to ask any follow-up question!`,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+    }
   }
 
   if (mode === 'simplify') {

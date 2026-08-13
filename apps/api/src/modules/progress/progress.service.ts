@@ -477,13 +477,15 @@ export class ProgressService {
         icon: '🏅',
         href: '/dashboard/achievements',
       })),
-      ...enrollments.map((e: any) => ({
-        type: 'enrollment' as const,
-        title: `Enrolled in: ${e.course.title}`,
-        date: e.createdAt,
-        icon: '📚',
-        href: `/dashboard/courses/${e.course.slug}`,
-      })),
+      ...enrollments
+        .filter((e: any) => e?.course)
+        .map((e: any) => ({
+          type: 'enrollment' as const,
+          title: `Enrolled in: ${e.course.title}`,
+          date: e.createdAt,
+          icon: '📚',
+          href: `/dashboard/courses/${e.course.slug}`,
+        })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 15);
 
     return activities;
@@ -508,7 +510,12 @@ export class ProgressService {
   }
 
   async dashboard(userId: string) {
-    const profile = await this.prisma.userProfile.findUniqueOrThrow({ where: { userId } });
+    let profile = await this.prisma.userProfile.findUnique({ where: { userId } });
+    if (!profile) {
+      profile = await this.prisma.userProfile.create({
+        data: { userId, fullName: 'Learner' },
+      });
+    }
 
     const enrollments = await this.prisma.enrollment.count({ where: { userId } });
     const completedLessons = await this.prisma.lessonProgress.count({
