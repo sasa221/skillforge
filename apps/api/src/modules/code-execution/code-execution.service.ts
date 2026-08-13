@@ -135,4 +135,87 @@ export class CodeExecutionService {
       testResults: [],
     };
   }
+
+  getChallenges() {
+    return [
+      {
+        id: 'two-sum',
+        title: 'Two Sum Algorithm',
+        difficulty: 'Easy',
+        category: 'Algorithms',
+        xpAward: 100,
+        language: 'javascript',
+        description: 'Given an array of integers `nums` and an integer `target`, return the indices of the two numbers such that they add up to `target`. Print the result as a JSON array.',
+        starterCode: `function twoSum(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const diff = target - nums[i];\n    if (map.has(diff)) {\n      console.log(JSON.stringify([map.get(diff), i]));\n      return;\n    }\n    map.set(nums[i], i);\n  }\n}\n\ntwoSum([2, 7, 11, 15], 9);`,
+        testCases: [{ input: '[2, 7, 11, 15], 9', expectedOutput: '[0,1]' }],
+      },
+      {
+        id: 'reverse-string',
+        title: 'Reverse String Challenge',
+        difficulty: 'Easy',
+        category: 'Strings',
+        xpAward: 80,
+        language: 'javascript',
+        description: 'Write an algorithm that takes a string input and prints its characters in reverse order.',
+        starterCode: `function reverseString(str) {\n  console.log(str.split('').reverse().join(''));\n}\n\nreverseString('skillforge');`,
+        testCases: [{ input: "'skillforge'", expectedOutput: 'egroflliks' }],
+      },
+      {
+        id: 'fizzbuzz',
+        title: 'FizzBuzz Speed Battle',
+        difficulty: 'Easy',
+        category: 'Logic',
+        xpAward: 75,
+        language: 'javascript',
+        description: 'Print numbers from 1 to 15. For multiples of 3 print "Fizz", for 5 print "Buzz", and for both print "FizzBuzz".',
+        starterCode: `for (let i = 1; i <= 15; i++) {\n  if (i % 15 === 0) console.log('FizzBuzz');\n  else if (i % 3 === 0) console.log('Fizz');\n  else if (i % 5 === 0) console.log('Buzz');\n  else console.log(i);\n}`,
+        testCases: [{ input: '1 to 15', expectedOutput: 'FizzBuzz' }],
+      },
+      {
+        id: 'palindrome-check',
+        title: 'Palindrome Validator',
+        difficulty: 'Medium',
+        category: 'Strings',
+        xpAward: 120,
+        language: 'javascript',
+        description: 'Determine if a given string is a valid palindrome (ignoring spaces and punctuation). Print true or false.',
+        starterCode: `function isPalindrome(str) {\n  const clean = str.toLowerCase().replace(/[^a-z0-9]/g, '');\n  console.log(clean === clean.split('').reverse().join(''));\n}\n\nisPalindrome('A man, a plan, a canal: Panama');`,
+        testCases: [{ input: "'A man, a plan, a canal: Panama'", expectedOutput: 'true' }],
+      },
+      {
+        id: 'fibonacci-seq',
+        title: 'Fibonacci Sequence Generator',
+        difficulty: 'Hard',
+        category: 'Recursion',
+        xpAward: 150,
+        language: 'javascript',
+        description: 'Generate and print the first 6 numbers of the Fibonacci sequence starting from 0 as a JSON array.',
+        starterCode: `function fibonacci(n) {\n  const res = [0, 1];\n  for (let i = 2; i < n; i++) {\n    res.push(res[i - 1] + res[i - 2]);\n  }\n  console.log(JSON.stringify(res));\n}\n\nfibonacci(6);`,
+        testCases: [{ input: '6', expectedOutput: '[0,1,1,2,3,5]' }],
+      },
+    ];
+  }
+
+  async submitChallenge(challengeId: string, code: string, language: SupportedLanguage) {
+    const challenge = this.getChallenges().find((c) => c.id === challengeId);
+    if (!challenge) {
+      return { ok: false, error: 'Challenge not found' };
+    }
+
+    const execResult = await this.executeCode({
+      language,
+      code,
+      testCases: challenge.testCases,
+    });
+
+    return {
+      ok: execResult.passed,
+      challengeId,
+      xpAwarded: execResult.passed ? challenge.xpAward : 0,
+      executionTimeMs: execResult.executionTimeMs,
+      stdout: execResult.stdout,
+      stderr: execResult.stderr,
+      testResults: execResult.testResults,
+    };
+  }
 }

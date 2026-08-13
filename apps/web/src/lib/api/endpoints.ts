@@ -595,6 +595,13 @@ export const codeExecutionApi = {
       body: JSON.stringify(input),
       headers: { 'content-type': 'application/json' },
     }),
+  challenges: () => apiFetch<any[]>('/code/challenges', { method: 'GET' }),
+  submitChallenge: (id: string, code: string, language = 'javascript') =>
+    apiFetch<any>(`/code/challenges/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ code, language }),
+      headers: { 'content-type': 'application/json' },
+    }),
 };
 
 export const authSessionsApi = {

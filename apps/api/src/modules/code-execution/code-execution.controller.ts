@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
 import { CodeExecutionService, ExecuteCodeDto } from './code-execution.service';
@@ -14,5 +14,24 @@ export class CodeExecutionController {
   @Post('execute')
   async execute(@Body() dto: ExecuteCodeDto) {
     return this.codeExecution.executeCode(dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Get list of interactive code battle challenges' })
+  @Get('challenges')
+  async getChallenges() {
+    return this.codeExecution.getChallenges();
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAccessGuard)
+  @ApiOkResponse({ description: 'Submit solution for code challenge evaluation' })
+  @Post('challenges/:id/submit')
+  async submitChallenge(
+    @Param('id') id: string,
+    @Body() body: { code: string; language: any },
+  ) {
+    return this.codeExecution.submitChallenge(id, body.code, body.language ?? 'javascript');
   }
 }
