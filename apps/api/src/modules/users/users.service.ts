@@ -22,6 +22,8 @@ export class UsersService {
     return {
       id: user.id,
       email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
       roles,
       profile: user.profile
         ? {

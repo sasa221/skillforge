@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
@@ -15,6 +15,8 @@ import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -100,8 +102,12 @@ export class AuthService {
     await this.setRefreshTokenHash(user.id, refreshToken);
     await this.events.track(user.id, 'user_signup', { entityType: 'User', entityId: user.id });
 
-    // Trigger email verification token send
-    void this.requestEmailVerification(user.email).catch(() => {});
+    // Synchronously send email verification token on signup
+    try {
+      await this.requestEmailVerification(user.email);
+    } catch (err: any) {
+      this.logger.error(`Failed to send initial signup OTP code to ${user.email}: ${err.message}`);
+    }
 
     return {
       accessToken,
@@ -109,6 +115,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
         roles,
         profile: user.profile
           ? {
@@ -154,6 +162,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
         roles,
         profile: user.profile
           ? {
@@ -194,6 +204,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
         roles,
         profile: profile
           ? {
