@@ -47,7 +47,9 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const uploadsRoot = join(process.cwd(), 'uploads');
+  const uploadsRoot = process.env.VERCEL
+    ? join('/tmp', 'uploads')
+    : join(process.cwd(), 'uploads');
   mkdirSync(uploadsRoot, { recursive: true });
   app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
 
