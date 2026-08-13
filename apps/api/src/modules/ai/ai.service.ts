@@ -1030,30 +1030,25 @@ function fallbackTextForLesson(
   const email = userMeta?.email ? ` (${userMeta.email})` : '';
   const xp = userMeta?.xp ?? 0;
 
+  // Conversational Intent: Asking about the AI
   if (
-    msgLower.includes('know me') ||
-    msgLower.includes('who am i') ||
-    msgLower.includes('من انا') ||
-    msgLower.includes('مين انا') ||
-    msgLower.includes('تعرفني')
-  ) {
-    return isArabic
-      ? `نعم، طبعاً أعرفك! أنت الطالب **${name}**${email}. 🎓✨\nأنت تدرس حالياً درس **"${lesson.title}"** وحصلت على **${xp} XP** في منصة SkillForge! 🚀\nكيف يمكنني مساعدتك في دراستك اليوم؟`
-      : `Yes, of course I know you! You are **${name}**${email}. 🎓✨\nYou are currently studying **"${lesson.title}"** and have earned **${xp} XP** on SkillForge! 🚀\nHow can I assist you with your learning goals today?`;
-  }
-
-  if (
+    msgLower.includes('know you') ||
+    msgLower.includes('wanna know') ||
+    msgLower.includes('about you') ||
     msgLower.includes('who are you') ||
+    msgLower.includes('who created you') ||
     msgLower.includes('hello') ||
     msgLower.includes('hi') ||
     msgLower.includes('من انت') ||
     msgLower.includes('مين انت') ||
     msgLower.includes('مرحبا') ||
-    msgLower.includes('ازيك')
+    msgLower.includes('ازيك') ||
+    msgLower.includes('عايز اعرفك') ||
+    msgLower.includes('اعرفك')
   ) {
     return isArabic
-      ? `أهلاً بك يا **${name}**! أنا الذكاء الاصطناعي **Forge AI**، المعلم الذكي الخاص بك في منصة SkillForge! 🤖✨\nأنا هنا لمساعدتك في فهم وشرح درس **"${lesson.title}"** والإجابة على أي سؤال.`
-      : `Hello **${name}**! I am **Forge AI**, your dedicated AI tutor on SkillForge! 🤖✨\nI am here to help you learn, practice, and master **"${lesson.title}"**. How can I assist you today?`;
+      ? `أنا الذكاء الاصطناعي **Forge AI**، المعلم والمساعد الذكي الخاص بك في منصة SkillForge! 🤖✨\n\nتم تصميمي لمساعدتك في إتقان المهارات، وشرح الدروس خطوة بخطوة مثل **"${lesson.title}"**، والإجابة على أي أسئلة برمجية أو تعليمية، ومتابعة تقدمك.\n\nما الذي تود الاستفسار عنه أو مناقشته الآن يا ${name}؟`
+      : `I am **Forge AI**, your personal AI tutor on SkillForge! 🤖✨\n\nI'm designed to help you master skills, guide you step-by-step through lessons like **"${lesson.title}"**, answer your technical questions, write code examples, and guide your progress.\n\nWhat would you like to explore or learn together right now, ${name}?`;
   }
 
   const keyIdeas = keyIdeasFromBlocks(lesson.blocks, 3);
@@ -1063,21 +1058,21 @@ function fallbackTextForLesson(
     const cleanQ = userMessage.trim();
     if (isArabic) {
       return [
-        `**إجابةForge AI على سؤالك:** "${cleanQ}"`,
-        objective ? `📌 **المفهوم الرئيسي لدرس (${lesson.title}):** ${objective}` : null,
+        `إجابة على استفسارك: **"${cleanQ}"**`,
+        objective ? `📌 **في سياق درس (${lesson.title}):** ${objective}` : null,
         keyIdeas[0] ? `💡 **التركيز الأساسي:** ${keyIdeas[0]}` : null,
-        keyIdeas[1] ? `🔍 **تفاصيل إضافية:** ${keyIdeas[1]}` : null,
-        `إذا كان لديك أي سؤال إضافي حول هذا الموضوع، يسعدني الإجابة عليه فوراً!`,
+        keyIdeas[1] ? `🔍 **توضيح عميق:** ${keyIdeas[1]}` : null,
+        `هل تود شرح نقطة معينة في هذا الدرس بشكل أعمق يا ${name}؟`,
       ]
         .filter(Boolean)
         .join('\n\n');
     } else {
       return [
-        `**Forge AI Answer to your question:** "${cleanQ}"`,
-        objective ? `📌 **Core Concept of (${lesson.title}):** ${objective}` : null,
+        `Regarding your query: **"${cleanQ}"**`,
+        objective ? `📌 **In "${lesson.title}":** ${objective}` : null,
         keyIdeas[0] ? `💡 **Key Takeaway:** ${keyIdeas[0]}` : null,
         keyIdeas[1] ? `🔍 **Practical Detail:** ${keyIdeas[1]}` : null,
-        `Feel free to ask any follow-up question!`,
+        `Would you like me to elaborate on any specific part for you, ${name}?`,
       ]
         .filter(Boolean)
         .join('\n\n');
