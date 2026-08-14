@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { ContentStatus, QuestionType } from '../../prisma-enums';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -52,6 +53,73 @@ export class AdminService {
       completedCourses,
       totalQuizAttempts,
     };
+  }
+
+  async analytics() {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 13 * 24 * 60 * 60 * 1000);
+    fourteenDaysAgo.setHours(0, 0, 0, 0);
+
+    const [totalUsers, totalCourses, totalEnrollments, totalCertificates, newUsersLast30, newEnrollmentsLast30, activeUsersLast7, aiMessages, courseAiMessages, signups, enrollments, topCourses] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.course.count({ where: { deletedAt: null } }),
+      this.prisma.enrollment.count(),
+      this.prisma.certificate.count(),
+      this.prisma.user.count({ where: { deletedAt: null, createdAt: { gte: thirtyDaysAgo } } }),
+      this.prisma.enrollment.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      this.prisma.lessonProgress.findMany({ where: { updatedAt: { gte: sevenDaysAgo } }, distinct: ['userId'], select: { userId: true } }),
+      this.prisma.aiMessage.count({ where: { createdAt: { gte: thirtyDaysAgo } } }).catch(() => 0),
+      this.prisma.courseAiMessage.count({ where: { createdAt: { gte: thirtyDaysAgo } } }).catch(() => 0),
+      this.prisma.user.findMany({ where: { createdAt: { gte: fourteenDaysAgo } }, select: { createdAt: true } }),
+      this.prisma.enrollment.findMany({ where: { createdAt: { gte: fourteenDaysAgo } }, select: { createdAt: true } }),
+      this.prisma.course.findMany({ where: { deletedAt: null }, orderBy: { enrollments: { _count: 'desc' } }, take: 5, include: { _count: { select: { enrollments: true } } } }),
+    ]);
+
+    const daily = (dates: Date[]) => Array.from({ length: 14 }, (_, offset) => {
+      const date = new Date(fourteenDaysAgo.getTime() + offset * 24 * 60 * 60 * 1000);
+      const key = date.toISOString().slice(0, 10);
+      return { date: key, count: dates.filter((value) => value.toISOString().slice(0, 10) === key).length };
+    });
+
+    return {
+      totals: { totalUsers, totalCourses, totalEnrollments, totalCertificates },
+      trends: { newUsersLast30, newEnrollmentsLast30, activeUsersLast7: activeUsersLast7.length, aiMessageCount: aiMessages + courseAiMessages },
+      charts: { dailySignups: daily(signups.map((item) => item.createdAt)), dailyEnrollments: daily(enrollments.map((item) => item.createdAt)) },
+      topCourses,
+    };
+  }
+
+  async adminListInstructors() {
+    const instructors = await this.prisma.instructor.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+      include: { MediaAsset: true, Course: { where: { deletedAt: null }, select: { id: true, title: true, slug: true, status: true } }, User: { include: { profile: true, roles: { include: { role: true } } } } },
+    });
+    return instructors.map(({ Course, User, MediaAsset, ...instructor }) => ({
+      ...instructor,
+      avatarAsset: MediaAsset,
+      courses: Course,
+      linkedUser: User ? { id: User.id, email: User.email, fullName: User.profile?.fullName ?? null, roles: User.roles.map((item) => item.role.type) } : null,
+    }));
+  }
+
+  async adminCreateInstructor(input: any) {
+    if (!input.fullName?.trim() || !input.slug?.trim()) throw new BadRequestException('Full name and slug are required');
+    return this.prisma.instructor.create({ data: { id: randomUUID(), fullName: input.fullName.trim(), slug: input.slug.trim(), title: input.title ?? null, bio: input.bio ?? null, avatarUrl: input.avatarUrl ?? null, avatarAssetId: input.avatarAssetId ?? null, userId: input.userId ?? null, order: Number(input.order ?? 0), status: input.status ?? ContentStatus.draft, updatedAt: new Date() } });
+  }
+
+  async adminUpdateInstructor(id: string, input: any) {
+    const existing = await this.prisma.instructor.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) throw new NotFoundException('Instructor not found');
+    return this.prisma.instructor.update({ where: { id }, data: { ...(input.fullName !== undefined ? { fullName: input.fullName } : {}), ...(input.slug !== undefined ? { slug: input.slug } : {}), ...(input.title !== undefined ? { title: input.title || null } : {}), ...(input.bio !== undefined ? { bio: input.bio || null } : {}), ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl || null } : {}), ...(input.avatarAssetId !== undefined ? { avatarAssetId: input.avatarAssetId || null } : {}), ...(input.userId !== undefined ? { userId: input.userId || null } : {}), ...(input.order !== undefined ? { order: Number(input.order) } : {}), ...(input.status !== undefined ? { status: input.status } : {}), updatedAt: new Date() } });
+  }
+
+  async adminDeleteInstructor(id: string) {
+    const existing = await this.prisma.instructor.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) throw new NotFoundException('Instructor not found');
+    return this.prisma.instructor.update({ where: { id }, data: { deletedAt: new Date(), status: ContentStatus.archived, updatedAt: new Date() } });
   }
 
   async contentStats() {

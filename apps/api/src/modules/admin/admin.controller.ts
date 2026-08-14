@@ -35,6 +35,36 @@ export class AdminController {
     return this.admin.overview();
   }
 
+  @ApiOkResponse({ description: 'Admin analytics' })
+  @Get('analytics')
+  analytics() {
+    return this.admin.analytics();
+  }
+
+  @ApiOkResponse({ description: 'List instructors' })
+  @Get('instructors')
+  instructors() {
+    return this.admin.adminListInstructors();
+  }
+
+  @ApiOkResponse({ description: 'Create instructor' })
+  @Post('instructors')
+  createInstructor(@Body() input: any) {
+    return this.admin.adminCreateInstructor(input);
+  }
+
+  @ApiOkResponse({ description: 'Update instructor' })
+  @Patch('instructors/:id')
+  updateInstructor(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminUpdateInstructor(id, input);
+  }
+
+  @ApiOkResponse({ description: 'Archive instructor' })
+  @Delete('instructors/:id')
+  deleteInstructor(@Param('id') id: string) {
+    return this.admin.adminDeleteInstructor(id);
+  }
+
   @ApiOkResponse({ description: 'Content stats by status' })
   @Get('content/stats')
   contentStats() {
