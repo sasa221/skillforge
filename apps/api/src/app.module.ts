@@ -25,6 +25,7 @@ import { CodeExecutionModule } from './modules/code-execution/code-execution.mod
 import { EmailVerifiedGuard } from './modules/auth/guards/email-verified.guard';
 import { LearningPathsModule } from './modules/learning-paths/learning-paths.module';
 import { SiteSurfacesModule } from './modules/site-surfaces/site-surfaces.module';
+import { InstructorModule } from './modules/instructor/instructor.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { SiteSurfacesModule } from './modules/site-surfaces/site-surfaces.module
     CodeExecutionModule,
     LearningPathsModule,
     SiteSurfacesModule,
+    InstructorModule,
   ],
   providers: [
     EmailVerifiedGuard,
