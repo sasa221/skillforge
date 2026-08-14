@@ -875,6 +875,29 @@ export class ProgressService {
     };
   }
 
+  async dashboardFallback(userId: string) {
+    const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
+    const [enrollmentsCount, completedLessonsCount, completedCoursesCount] = await Promise.all([
+      this.prisma.enrollment.count({ where: { userId } }).catch(() => 0),
+      this.prisma.lessonProgress.count({ where: { userId, completedAt: { not: null } } }).catch(() => 0),
+      this.prisma.courseProgress.count({ where: { userId, status: 'completed' } }).catch(() => 0),
+    ]);
+
+    return {
+      xp: profile?.xp ?? 0,
+      level: profile?.level ?? 1,
+      streakDays: profile?.streakDays ?? 0,
+      enrollmentsCount,
+      completedLessonsCount,
+      completedCoursesCount,
+      recentBadges: [],
+      recentAchievements: [],
+      activeCourse: null,
+      continueLesson: null,
+      recentQuizAttempts: [],
+    };
+  }
+
   async profileSummary(userId: string) {
     const profile = await this.prisma.userProfile.findUniqueOrThrow({ where: { userId } });
 

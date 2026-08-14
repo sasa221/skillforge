@@ -15,7 +15,12 @@ export class ProgressController {
   @ApiOkResponse({ description: 'Dashboard summary' })
   @Get(['', 'me/dashboard'])
   async dashboard(@Req() req: any) {
-    return this.progress.dashboard(req.user.sub);
+    try {
+      return await this.progress.dashboard(req.user.sub);
+    } catch (error) {
+      console.error('[progress.dashboard] full dashboard query failed', error);
+      return this.progress.dashboardFallback(req.user.sub);
+    }
   }
 
   @ApiBearerAuth()
