@@ -65,6 +65,30 @@ export class AdminController {
     return this.admin.adminDeleteInstructor(id);
   }
 
+  @ApiOkResponse({ description: 'List media assets with usage' })
+  @Get('media-assets')
+  mediaAssets() {
+    return this.admin.adminListMediaAssets();
+  }
+
+  @ApiOkResponse({ description: 'Create an external media asset' })
+  @Post('media-assets')
+  createMediaAsset(@Body() input: any) {
+    return this.admin.adminCreateMediaAsset(input);
+  }
+
+  @ApiOkResponse({ description: 'Update a media asset' })
+  @Patch('media-assets/:id')
+  updateMediaAsset(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminUpdateMediaAsset(id, input);
+  }
+
+  @ApiOkResponse({ description: 'Archive a media asset' })
+  @Delete('media-assets/:id')
+  deleteMediaAsset(@Param('id') id: string) {
+    return this.admin.adminDeleteMediaAsset(id);
+  }
+
   @ApiOkResponse({ description: 'Content stats by status' })
   @Get('content/stats')
   contentStats() {

@@ -122,6 +122,41 @@ export class AdminService {
     return this.prisma.instructor.update({ where: { id }, data: { deletedAt: new Date(), status: ContentStatus.archived, updatedAt: new Date() } });
   }
 
+  async adminListMediaAssets() {
+    const assets = await this.prisma.mediaAsset.findMany({
+      where: { deletedAt: null }, orderBy: { createdAt: 'desc' },
+      include: {
+        User: { include: { profile: true } },
+        Course_Course_coverImageAssetIdToMediaAsset: { where: { deletedAt: null }, select: { id: true, title: true, slug: true, status: true } },
+        Course_Course_introVideoAssetIdToMediaAsset: { where: { deletedAt: null }, select: { id: true, title: true, slug: true, status: true } },
+        Module: { where: { deletedAt: null }, select: { id: true, title: true, status: true, course: { select: { id: true, title: true, slug: true } } } },
+        Instructor: { where: { deletedAt: null }, select: { id: true, fullName: true, slug: true, status: true } },
+      },
+    });
+    return assets.map(({ User, Course_Course_coverImageAssetIdToMediaAsset: coverCourses, Course_Course_introVideoAssetIdToMediaAsset: introCourses, Module: introModules, Instructor: avatarInstructors, ...asset }) => ({
+      ...asset,
+      uploadedBy: User ? { id: User.id, email: User.email, fullName: User.profile?.fullName ?? null } : null,
+      usage: { totalLinks: coverCourses.length + introCourses.length + introModules.length + avatarInstructors.length, coverCourses, introCourses, introModules, avatarInstructors },
+    }));
+  }
+
+  async adminCreateMediaAsset(input: any) {
+    if (!input.title?.trim() || !input.url?.trim()) throw new BadRequestException('Title and URL are required');
+    return this.prisma.mediaAsset.create({ data: { id: randomUUID(), title: input.title.trim(), url: input.url.trim(), altText: input.altText ?? null, mimeType: input.mimeType ?? null, durationSeconds: input.durationSeconds == null ? null : Number(input.durationSeconds), width: input.width == null ? null : Number(input.width), height: input.height == null ? null : Number(input.height), sizeBytes: input.sizeBytes == null ? null : Number(input.sizeBytes), type: input.type ?? 'image', sourceType: input.sourceType ?? 'external', status: input.status ?? ContentStatus.draft, updatedAt: new Date() } });
+  }
+
+  async adminUpdateMediaAsset(id: string, input: any) {
+    const existing = await this.prisma.mediaAsset.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) throw new NotFoundException('Media asset not found');
+    return this.prisma.mediaAsset.update({ where: { id }, data: { ...(input.title !== undefined ? { title: input.title } : {}), ...(input.url !== undefined ? { url: input.url } : {}), ...(input.altText !== undefined ? { altText: input.altText || null } : {}), ...(input.mimeType !== undefined ? { mimeType: input.mimeType || null } : {}), ...(input.durationSeconds !== undefined ? { durationSeconds: input.durationSeconds == null ? null : Number(input.durationSeconds) } : {}), ...(input.type !== undefined ? { type: input.type } : {}), ...(input.sourceType !== undefined ? { sourceType: input.sourceType } : {}), ...(input.status !== undefined ? { status: input.status } : {}), updatedAt: new Date() } });
+  }
+
+  async adminDeleteMediaAsset(id: string) {
+    const existing = await this.prisma.mediaAsset.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) throw new NotFoundException('Media asset not found');
+    return this.prisma.mediaAsset.update({ where: { id }, data: { deletedAt: new Date(), status: ContentStatus.archived, updatedAt: new Date() } });
+  }
+
   async contentStats() {
     const byStatus = async (model: 'skill' | 'course' | 'module' | 'lesson' | 'quiz') => {
       const rows = await (this.prisma as any)[model].groupBy({
