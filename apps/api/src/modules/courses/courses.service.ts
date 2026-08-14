@@ -26,19 +26,81 @@ export class CoursesService {
   }
 
   async listPublishedInstructors() {
-    return this.prisma.instructor.findMany({
+    const instructors = await this.prisma.instructor.findMany({
       where: { status: ContentStatus.published, deletedAt: null },
       orderBy: { order: 'asc' },
+      include: {
+        MediaAsset: true,
+        Course: {
+          where: { status: ContentStatus.published, deletedAt: null },
+          orderBy: { order: 'asc' },
+          include: {
+            MediaAsset_Course_coverImageAssetIdToMediaAsset: true,
+            skills: { include: { skill: true } },
+          },
+        },
+      },
     });
+    return instructors.map((instructor) => this.toPublicInstructor(instructor));
   }
 
   async getPublishedInstructorBySlug(slug: string) {
     const instructor = await this.prisma.instructor.findFirst({
       where: { slug, status: ContentStatus.published, deletedAt: null },
-      include: { Course: true },
+      include: {
+        MediaAsset: true,
+        Course: {
+          where: { status: ContentStatus.published, deletedAt: null },
+          orderBy: { order: 'asc' },
+          include: {
+            MediaAsset_Course_coverImageAssetIdToMediaAsset: true,
+            skills: { include: { skill: true } },
+          },
+        },
+      },
     });
     if (!instructor) throw new NotFoundException('Instructor not found');
-    return instructor;
+    return this.toPublicInstructor(instructor);
+  }
+
+  private toPublicInstructor(instructor: any) {
+    const courses = (instructor.Course ?? []).map((course: any) => ({
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      description: course.description,
+      difficulty: course.difficulty,
+      estimatedMinutes: course.estimatedMinutes,
+      tags: course.tags,
+      coverImageUrl: course.coverImageUrl,
+      coverImageAsset: course.MediaAsset_Course_coverImageAssetIdToMediaAsset,
+      skills: course.skills,
+    }));
+    const focusSkills = Array.from(
+      new Set<string>(
+        courses.flatMap((course: any) =>
+          course.skills.map((courseSkill: any) => courseSkill.skill.title),
+        ),
+      ),
+    );
+
+    const { Course: _courses, MediaAsset: avatarAsset, ...profile } = instructor;
+    return {
+      ...profile,
+      avatarAsset,
+      courses,
+      stats: {
+        publishedCourses: courses.length,
+        guidedHours: Math.round(
+          courses.reduce(
+            (total: number, course: any) => total + (course.estimatedMinutes ?? 0),
+            0,
+          ) / 60,
+        ),
+        coveredSkills: focusSkills.length,
+      },
+      focusSkills,
+    };
   }
 
   async getPublishedBySlug(slug: string) {
