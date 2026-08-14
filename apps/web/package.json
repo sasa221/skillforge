@@ -7,7 +7,7 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start -p 3100",
-    "lint": "next lint",
+    "lint": "eslint .",
     "format": "prettier . --check"
   },
   "dependencies": {
@@ -39,7 +39,7 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "autoprefixer": "^10.4.20",
-    "eslint": "^9.20.1",
+    "eslint": "^8.57.1",
     "eslint-config-next": "^15.2.2",
     "postcss": "^8.5.3",
     "prettier": "^3.5.1",

@@ -480,8 +480,7 @@ export function EditLessonClient({ id }: { id: string }) {
         blocks: parsedCurrentBlocks,
       }
     : null;
-  const revisionFieldRenderers = React.useMemo(
-    () => ({
+  const revisionFieldRenderers = {
       blocks: (value: unknown, context: { otherValue: unknown; side: 'revision' | 'current' }) => {
         const blocks = Array.isArray(value)
           ? value.filter(
@@ -570,9 +569,7 @@ export function EditLessonClient({ id }: { id: string }) {
           </div>
         );
       },
-    }),
-    [],
-  );
+  };
   const saveLabel =
     form?.status === 'published'
       ? 'Publish Changes'

@@ -225,8 +225,7 @@ export function EditModuleClient({ id }: { id: string }) {
         status: form.status,
       }
     : null;
-  const revisionFieldRenderers = React.useMemo(
-    () => ({
+  const revisionFieldRenderers = {
       introVideoAssetId: (value: unknown, context: RevisionRendererContext) => {
         if (typeof value !== 'string' || !value.trim()) {
           return <span className="italic text-[var(--site-subtle)]">No linked intro video</span>;
@@ -247,9 +246,7 @@ export function EditModuleClient({ id }: { id: string }) {
         );
       },
       introVideoUrl: (value: unknown) => renderUrlChip(value, 'No direct intro video URL'),
-    }),
-    [videoTitlesById],
-  );
+  };
 
   return (
     <main className="space-y-6">
