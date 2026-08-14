@@ -23,6 +23,8 @@ import { EventsModule } from './modules/events/events.module';
 import { LearningAccessModule } from './modules/learning-access/learning-access.module';
 import { CodeExecutionModule } from './modules/code-execution/code-execution.module';
 import { EmailVerifiedGuard } from './modules/auth/guards/email-verified.guard';
+import { LearningPathsModule } from './modules/learning-paths/learning-paths.module';
+import { SiteSurfacesModule } from './modules/site-surfaces/site-surfaces.module';
 
 @Module({
   imports: [
@@ -54,6 +56,8 @@ import { EmailVerifiedGuard } from './modules/auth/guards/email-verified.guard';
     AiModule,
     AdminModule,
     CodeExecutionModule,
+    LearningPathsModule,
+    SiteSurfacesModule,
   ],
   providers: [
     EmailVerifiedGuard,
