@@ -517,34 +517,15 @@ export class ProgressService {
       });
     }
 
-    const enrollments = await this.prisma.enrollment.count({ where: { userId } });
-    const completedLessons = await this.prisma.lessonProgress.count({
-      where: { userId, completedAt: { not: null } },
-    });
-    const completedCourses = await this.prisma.courseProgress.count({
-      where: { userId, status: 'completed' },
-    });
-
-    const recentBadges = await this.prisma.userBadge.findMany({
-      where: { userId },
-      orderBy: { awardedAt: 'desc' },
-      take: 5,
-      include: { badge: true },
-    });
-
-    const recentAchievements = await this.prisma.userAchievement.findMany({
-      where: { userId },
-      orderBy: { awardedAt: 'desc' },
-      take: 5,
-      include: { achievement: true },
-    });
-
-    const recentQuizAttempts = await this.prisma.quizAttempt.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      include: { lesson: { select: { title: true, slug: true } } },
-    });
+    const [enrollments, completedLessons, completedCourses, recentBadges, recentAchievements, recentQuizAttempts] =
+      await Promise.all([
+        this.prisma.enrollment.count({ where: { userId } }),
+        this.prisma.lessonProgress.count({ where: { userId, completedAt: { not: null } } }),
+        this.prisma.courseProgress.count({ where: { userId, status: 'completed' } }),
+        this.prisma.userBadge.findMany({ where: { userId }, orderBy: { awardedAt: 'desc' }, take: 5, include: { badge: true } }).catch(() => []),
+        this.prisma.userAchievement.findMany({ where: { userId }, orderBy: { awardedAt: 'desc' }, take: 5, include: { achievement: true } }).catch(() => []),
+        this.prisma.quizAttempt.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5, include: { lesson: { select: { title: true, slug: true } } } }).catch(() => []),
+      ]);
 
     const enrollmentsData = (await this.prisma.enrollment.findMany({
       where: { userId },
@@ -584,7 +565,7 @@ export class ProgressService {
           },
         },
       },
-    })) as any[];
+    }).catch(() => [])) as any[];
 
     let continueLesson:
       | {
@@ -1344,4 +1325,3 @@ export class ProgressService {
     return { ok: true };
   }
 }
-
