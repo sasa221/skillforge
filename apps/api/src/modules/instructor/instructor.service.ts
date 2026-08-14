@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { ContentStatus } from '../../prisma-enums';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ContentReviewStatus, ContentStatus, CourseDifficulty } from '../../prisma-enums';
+import { AdminService } from '../admin/admin.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class InstructorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly admin: AdminService) {}
 
   private profile(userId: string) {
     return this.prisma.instructor.findFirst({ where: { userId, deletedAt: null } });
@@ -38,4 +39,63 @@ export class InstructorService {
 
   skills() { return this.prisma.skill.findMany({ where: { deletedAt: null }, orderBy: { order: 'asc' } }); }
   mediaAssets(userId: string) { return this.prisma.mediaAsset.findMany({ where: { deletedAt: null, OR: [{ uploadedByUserId: userId }, { sourceType: 'external' }] }, orderBy: { createdAt: 'desc' } }); }
+
+  private async ownedCourse(userId: string, courseId: string) {
+    const instructor = await this.profile(userId);
+    if (!instructor) throw new NotFoundException('Instructor profile not found');
+    const course = await this.prisma.course.findFirst({ where: { id: courseId, instructorId: instructor.id, deletedAt: null } });
+    if (!course) throw new NotFoundException('Course not found');
+    return { instructor, course };
+  }
+
+  private async ownedModule(userId: string, moduleId: string) {
+    const module = await this.prisma.module.findFirst({ where: { id: moduleId, deletedAt: null }, include: { course: true } });
+    if (!module) throw new NotFoundException('Module not found');
+    await this.ownedCourse(userId, module.courseId);
+    return module;
+  }
+
+  private async ownedLesson(userId: string, lessonId: string) {
+    const lesson = await this.prisma.lesson.findFirst({ where: { id: lessonId, deletedAt: null }, include: { module: true } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    await this.ownedModule(userId, lesson.moduleId);
+    return lesson;
+  }
+
+  private slug(value: string) {
+    return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `course-${Date.now()}`;
+  }
+
+  async createCourse(userId: string, input: any) {
+    const instructor = await this.profile(userId);
+    if (!instructor) throw new NotFoundException('Instructor profile not found');
+    const base = this.slug(input.slug || input.title || 'course');
+    let slug = base;
+    if (await this.prisma.course.findUnique({ where: { slug } })) slug = `${base}-${Date.now().toString(36)}`;
+    const course = await this.admin.adminCreateCourse({ ...input, slug, difficulty: input.difficulty ?? input.level ?? CourseDifficulty.beginner, status: ContentStatus.draft });
+    await this.prisma.course.update({ where: { id: course.id }, data: { instructorId: instructor.id, reviewStatus: ContentReviewStatus.draft } });
+    return this.admin.adminGetCourse(course.id);
+  }
+
+  async getCourse(userId: string, id: string) { await this.ownedCourse(userId, id); return this.admin.adminGetCourse(id); }
+  async updateCourse(userId: string, id: string, input: any) { await this.ownedCourse(userId, id); return this.admin.adminUpdateCourse(id, { ...input, status: input.status === ContentStatus.published ? ContentStatus.draft : input.status }); }
+  async courseModules(userId: string, id: string) { await this.ownedCourse(userId, id); return this.admin.adminCourseModules(id); }
+  async createModule(userId: string, id: string, input: any) { await this.ownedCourse(userId, id); const result = await this.admin.adminCreateModule(id, { ...input, status: ContentStatus.draft }); await this.prisma.module.update({ where: { id: result.id }, data: { reviewStatus: ContentReviewStatus.draft } }); return result; }
+  async getModule(userId: string, id: string) { await this.ownedModule(userId, id); return this.admin.adminGetModule(id); }
+  async updateModule(userId: string, id: string, input: any) { await this.ownedModule(userId, id); return this.admin.adminUpdateModule(id, { ...input, status: input.status === ContentStatus.published ? ContentStatus.draft : input.status }); }
+  async moduleLessons(userId: string, id: string) { await this.ownedModule(userId, id); return this.admin.adminModuleLessons(id); }
+  async createLesson(userId: string, id: string, input: any) { await this.ownedModule(userId, id); const title = input.title || 'Untitled lesson'; const result = await this.admin.adminCreateLesson(id, { ...input, title, slug: input.slug || `${this.slug(title)}-${Date.now().toString(36)}`, status: ContentStatus.draft }); await this.prisma.lesson.update({ where: { id: result.id }, data: { reviewStatus: ContentReviewStatus.draft } }); return result; }
+  async getLesson(userId: string, id: string) { await this.ownedLesson(userId, id); return this.admin.adminGetLesson(id); }
+  async updateLesson(userId: string, id: string, input: any) { await this.ownedLesson(userId, id); return this.admin.adminUpdateLesson(id, { ...input, status: input.status === ContentStatus.published ? ContentStatus.draft : input.status }); }
+  async getQuiz(userId: string, lessonId: string) { await this.ownedLesson(userId, lessonId); return this.admin.adminGetLessonQuiz(lessonId); }
+  async upsertQuiz(userId: string, lessonId: string, input: any) { await this.ownedLesson(userId, lessonId); return this.admin.adminCreateOrUpdateLessonQuiz(lessonId, { ...input, title: input.title || 'Lesson quiz', status: ContentStatus.draft }); }
+  async createQuestion(userId: string, quizId: string, input: any) { const quiz = await this.prisma.quiz.findFirst({ where: { id: quizId, deletedAt: null } }); if (!quiz) throw new NotFoundException('Quiz not found'); await this.ownedLesson(userId, quiz.lessonId); return this.admin.adminCreateQuestion(quizId, input); }
+
+  async submitReview(userId: string, type: 'course' | 'module' | 'lesson', id: string, notes?: string) {
+    if (type === 'course') await this.ownedCourse(userId, id);
+    if (type === 'module') await this.ownedModule(userId, id);
+    if (type === 'lesson') await this.ownedLesson(userId, id);
+    const model = type === 'course' ? this.prisma.course : type === 'module' ? this.prisma.module : this.prisma.lesson;
+    return (model as any).update({ where: { id }, data: { reviewStatus: ContentReviewStatus.submitted, reviewNotes: notes?.trim() || null } });
+  }
 }
