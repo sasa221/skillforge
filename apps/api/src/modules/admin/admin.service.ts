@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { ContentStatus, QuestionType } from '../../prisma-enums';
+import { ContentReviewStatus, ContentStatus, QuestionType } from '../../prisma-enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from '../courses/dto/create-course.dto';
@@ -155,6 +155,37 @@ export class AdminService {
     const existing = await this.prisma.mediaAsset.findUnique({ where: { id } });
     if (!existing || existing.deletedAt) throw new NotFoundException('Media asset not found');
     return this.prisma.mediaAsset.update({ where: { id }, data: { deletedAt: new Date(), status: ContentStatus.archived, updatedAt: new Date() } });
+  }
+
+  async adminReviews(status = 'pending', type = 'all') {
+    const statuses = status === 'pending' ? [ContentReviewStatus.submitted, ContentReviewStatus.changes_requested] : status === 'all' ? undefined : [status as ContentReviewStatus];
+    const where = { deletedAt: null, ...(statuses ? { reviewStatus: { in: statuses } } : {}) };
+    const [courses, modules, lessons] = await Promise.all([
+      type === 'all' || type === 'course' ? this.prisma.course.findMany({ where, include: { Instructor: { include: { MediaAsset: true } } } }) : [],
+      type === 'all' || type === 'module' ? this.prisma.module.findMany({ where, include: { course: { include: { Instructor: { include: { MediaAsset: true } } } } } }) : [],
+      type === 'all' || type === 'lesson' ? this.prisma.lesson.findMany({ where, include: { module: { include: { course: { include: { Instructor: { include: { MediaAsset: true } } } } } } } }) : [],
+    ]);
+    const instructor = (value: any) => value ? { ...value, avatarAsset: value.MediaAsset } : null;
+    const items = [
+      ...courses.map((item) => ({ ...item, entityType: 'course', editHref: `/admin/courses/${item.id}/edit`, course: { id: item.id, title: item.title, slug: item.slug }, module: null, instructor: instructor(item.Instructor) })),
+      ...modules.map((item) => ({ ...item, entityType: 'module', slug: null, editHref: `/admin/modules/${item.id}/edit`, course: { id: item.course.id, title: item.course.title, slug: item.course.slug }, module: { id: item.id, title: item.title }, instructor: instructor(item.course.Instructor) })),
+      ...lessons.map((item) => ({ ...item, entityType: 'lesson', editHref: `/admin/lessons/${item.id}/edit`, course: { id: item.module.course.id, title: item.module.course.title, slug: item.module.course.slug }, module: { id: item.module.id, title: item.module.title }, instructor: instructor(item.module.course.Instructor) })),
+    ].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
+    const allStatuses = await Promise.all([
+      this.prisma.course.findMany({ where: { deletedAt: null }, select: { reviewStatus: true } }),
+      this.prisma.module.findMany({ where: { deletedAt: null }, select: { reviewStatus: true } }),
+      this.prisma.lesson.findMany({ where: { deletedAt: null }, select: { reviewStatus: true } }),
+    ]);
+    const flattened = allStatuses.flat();
+    const count = (value: ContentReviewStatus) => flattened.filter((item) => item.reviewStatus === value).length;
+    return { statusFilter: status, typeFilter: type, summary: { total: flattened.length, submitted: count(ContentReviewStatus.submitted), changesRequested: count(ContentReviewStatus.changes_requested), approved: count(ContentReviewStatus.approved), draft: count(ContentReviewStatus.draft), needsAttention: count(ContentReviewStatus.submitted) + count(ContentReviewStatus.changes_requested), byType: { course: allStatuses[0].length, module: allStatuses[1].length, lesson: allStatuses[2].length } }, items };
+  }
+
+  async adminReviewDecision(entity: 'course' | 'module' | 'lesson', id: string, decision: 'approved' | 'changes_requested', notes?: string) {
+    const model = this.prisma[entity] as any;
+    const existing = await model.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) throw new NotFoundException(`${entity} not found`);
+    return model.update({ where: { id }, data: { reviewStatus: decision, reviewNotes: notes?.trim() || null, ...(decision === 'approved' ? { status: ContentStatus.published } : {}) } });
   }
 
   async contentStats() {

@@ -89,6 +89,42 @@ export class AdminController {
     return this.admin.adminDeleteMediaAsset(id);
   }
 
+  @ApiOkResponse({ description: 'Content review queue' })
+  @Get('reviews')
+  reviews(@Query('status') status = 'pending', @Query('type') type = 'all') {
+    return this.admin.adminReviews(status, type);
+  }
+
+  @Post('courses/:id/review/approve')
+  approveCourse(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminReviewDecision('course', id, 'approved', input?.notes);
+  }
+
+  @Post('courses/:id/review/request-changes')
+  requestCourseChanges(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminReviewDecision('course', id, 'changes_requested', input?.notes);
+  }
+
+  @Post('modules/:id/review/approve')
+  approveModule(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminReviewDecision('module', id, 'approved', input?.notes);
+  }
+
+  @Post('modules/:id/review/request-changes')
+  requestModuleChanges(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminReviewDecision('module', id, 'changes_requested', input?.notes);
+  }
+
+  @Post('lessons/:id/review/approve')
+  approveLesson(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminReviewDecision('lesson', id, 'approved', input?.notes);
+  }
+
+  @Post('lessons/:id/review/request-changes')
+  requestLessonChanges(@Param('id') id: string, @Body() input: any) {
+    return this.admin.adminReviewDecision('lesson', id, 'changes_requested', input?.notes);
+  }
+
   @ApiOkResponse({ description: 'Content stats by status' })
   @Get('content/stats')
   contentStats() {
