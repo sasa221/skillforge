@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ContentReviewStatus, ContentStatus, CourseDifficulty } from '../../prisma-enums';
+import { ContentReviewStatus, ContentRevisionTarget, ContentStatus, CourseDifficulty } from '../../prisma-enums';
 import { AdminService } from '../admin/admin.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -90,6 +90,17 @@ export class InstructorService {
   async getQuiz(userId: string, lessonId: string) { await this.ownedLesson(userId, lessonId); return this.admin.adminGetLessonQuiz(lessonId); }
   async upsertQuiz(userId: string, lessonId: string, input: any) { await this.ownedLesson(userId, lessonId); return this.admin.adminCreateOrUpdateLessonQuiz(lessonId, { ...input, title: input.title || 'Lesson quiz', status: ContentStatus.draft }); }
   async createQuestion(userId: string, quizId: string, input: any) { const quiz = await this.prisma.quiz.findFirst({ where: { id: quizId, deletedAt: null } }); if (!quiz) throw new NotFoundException('Quiz not found'); await this.ownedLesson(userId, quiz.lessonId); return this.admin.adminCreateQuestion(quizId, input); }
+
+  async restoreRevision(userId: string, type: 'course' | 'module' | 'lesson', id: string, revisionId: string) {
+    if (type === 'course') await this.ownedCourse(userId, id);
+    if (type === 'module') await this.ownedModule(userId, id);
+    if (type === 'lesson') await this.ownedLesson(userId, id);
+    const target = type === 'course' ? ContentRevisionTarget.course : type === 'module' ? ContentRevisionTarget.module : ContentRevisionTarget.lesson;
+    await this.admin.adminRestoreRevision(target, id, revisionId);
+    const model = type === 'course' ? this.prisma.course : type === 'module' ? this.prisma.module : this.prisma.lesson;
+    await (model as any).update({ where: { id }, data: { status: ContentStatus.draft, reviewStatus: ContentReviewStatus.draft, reviewNotes: null } });
+    return type === 'course' ? this.admin.adminGetCourse(id) : type === 'module' ? this.admin.adminGetModule(id) : this.admin.adminGetLesson(id);
+  }
 
   async submitReview(userId: string, type: 'course' | 'module' | 'lesson', id: string, notes?: string) {
     if (type === 'course') await this.ownedCourse(userId, id);

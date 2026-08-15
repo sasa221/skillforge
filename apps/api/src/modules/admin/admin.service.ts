@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { ContentReviewStatus, ContentStatus, QuestionType } from '../../prisma-enums';
+import { ContentReviewStatus, ContentRevisionTarget, ContentStatus, QuestionType } from '../../prisma-enums';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from '../courses/dto/create-course.dto';
@@ -320,10 +320,13 @@ export class AdminService {
       where: { id },
       include: {
         skills: { include: { skill: true } },
+        modules: { where: { deletedAt: null }, orderBy: { order: 'asc' } },
+        ContentRevision: { orderBy: { createdAt: 'desc' } },
       },
     });
     if (!course) throw new NotFoundException('Course not found');
-    return course;
+    const { ContentRevision: revisions, ...result } = course;
+    return { ...result, revisions };
   }
 
   async adminCreateCourse(dto: CreateCourseDto) {
@@ -438,9 +441,10 @@ export class AdminService {
   }
 
   async adminGetModule(id: string) {
-    const mod = await this.prisma.module.findUnique({ where: { id } });
+    const mod = await this.prisma.module.findUnique({ where: { id }, include: { ContentRevision: { orderBy: { createdAt: 'desc' } } } });
     if (!mod) throw new NotFoundException('Module not found');
-    return mod;
+    const { ContentRevision: revisions, ...result } = mod;
+    return { ...result, revisions };
   }
 
   // ===== Lessons / blocks =====
@@ -457,10 +461,11 @@ export class AdminService {
   async adminGetLesson(id: string) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
-      include: { blocks: { orderBy: { order: 'asc' } }, quiz: true },
+      include: { blocks: { orderBy: { order: 'asc' } }, quiz: true, ContentRevision: { orderBy: { createdAt: 'desc' } } },
     });
     if (!lesson) throw new NotFoundException('Lesson not found');
-    return lesson;
+    const { ContentRevision: revisions, ...result } = lesson;
+    return { ...result, revisions };
   }
 
   async adminCreateLesson(moduleId: string, dto: CreateLessonDto) {
@@ -542,6 +547,7 @@ export class AdminService {
     const quiz = await this.prisma.quiz.findUnique({
       where: { lessonId },
       include: {
+        ContentRevision: { orderBy: { createdAt: 'desc' } },
         questions: {
           where: { deletedAt: null },
           orderBy: { order: 'asc' },
@@ -550,7 +556,8 @@ export class AdminService {
       },
     });
     if (!quiz || quiz.deletedAt) return null;
-    return quiz;
+    const { ContentRevision: revisions, ...result } = quiz;
+    return { ...result, revisions };
   }
 
   async adminCreateOrUpdateLessonQuiz(lessonId: string, dto: UpsertQuizDto) {
@@ -688,6 +695,22 @@ export class AdminService {
     const q = await this.prisma.question.findUnique({ where: { id } });
     if (!q || q.deletedAt) throw new NotFoundException('Question not found');
     return this.prisma.question.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  async adminRestoreRevision(target: ContentRevisionTarget, id: string, revisionId: string) {
+    const relationKey = target === ContentRevisionTarget.course ? 'courseId' : target === ContentRevisionTarget.module ? 'moduleId' : target === ContentRevisionTarget.lesson ? 'lessonId' : 'quizId';
+    const revision = await this.prisma.contentRevision.findFirst({ where: { id: revisionId, target, [relationKey]: id } });
+    if (!revision) throw new NotFoundException('Revision not found');
+    const snapshot = revision.snapshot as any;
+    if (target === ContentRevisionTarget.course) return this.adminUpdateCourse(id, snapshot);
+    if (target === ContentRevisionTarget.module) return this.adminUpdateModule(id, snapshot);
+    if (target === ContentRevisionTarget.lesson) return this.adminUpdateLesson(id, snapshot);
+
+    await this.adminUpdateQuiz(id, snapshot);
+    await this.prisma.questionOption.deleteMany({ where: { question: { quizId: id } } });
+    await this.prisma.question.deleteMany({ where: { quizId: id } });
+    for (const question of snapshot.questions ?? []) await this.adminCreateQuestion(id, question);
+    return this.adminGetQuiz(id);
   }
 
   async exportUsersCsv(): Promise<string> {

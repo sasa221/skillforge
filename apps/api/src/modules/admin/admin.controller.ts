@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { UserRoleType } from '../../prisma-enums';
+import { ContentRevisionTarget, UserRoleType } from '../../prisma-enums';
 
 import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
 import { Roles } from '../auth/rbac/roles.decorator';
@@ -211,6 +211,11 @@ export class AdminController {
     return this.admin.adminDeleteCourse(id);
   }
 
+  @Post('courses/:id/revisions/:revisionId/restore')
+  restoreCourse(@Param('id') id: string, @Param('revisionId') revisionId: string) {
+    return this.admin.adminRestoreRevision(ContentRevisionTarget.course, id, revisionId);
+  }
+
   // ===== Modules =====
   @ApiOkResponse({ description: 'List modules for course' })
   @Get('courses/:courseId/modules')
@@ -240,6 +245,11 @@ export class AdminController {
   @Delete('modules/:id')
   deleteModule(@Param('id') id: string) {
     return this.admin.adminDeleteModule(id);
+  }
+
+  @Post('modules/:id/revisions/:revisionId/restore')
+  restoreModule(@Param('id') id: string, @Param('revisionId') revisionId: string) {
+    return this.admin.adminRestoreRevision(ContentRevisionTarget.module, id, revisionId);
   }
 
   // ===== Lessons =====
@@ -273,6 +283,11 @@ export class AdminController {
     return this.admin.adminDeleteLesson(id);
   }
 
+  @Post('lessons/:id/revisions/:revisionId/restore')
+  restoreLesson(@Param('id') id: string, @Param('revisionId') revisionId: string) {
+    return this.admin.adminRestoreRevision(ContentRevisionTarget.lesson, id, revisionId);
+  }
+
   // ===== Quizzes / Questions =====
   @ApiOkResponse({ description: 'Get quiz for lesson (admin)' })
   @Get('lessons/:lessonId/quiz')
@@ -302,6 +317,11 @@ export class AdminController {
   @Delete('quizzes/:id')
   deleteQuiz(@Param('id') id: string) {
     return this.admin.adminDeleteQuiz(id);
+  }
+
+  @Post('quizzes/:id/revisions/:revisionId/restore')
+  restoreQuiz(@Param('id') id: string, @Param('revisionId') revisionId: string) {
+    return this.admin.adminRestoreRevision(ContentRevisionTarget.quiz, id, revisionId);
   }
 
   @ApiOkResponse({ description: 'Create question for quiz' })
