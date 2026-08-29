@@ -2,6 +2,8 @@
 
 AI-powered interactive learning platform (Next.js + NestJS + PostgreSQL + Prisma).
 
+🔗 **Live:** [skillforge-web-one.vercel.app](https://skillforge-web-one.vercel.app) · [GitHub](https://github.com/sasa221/skillforge)
+
 ### Repo structure (monorepo)
 
 - `apps/web`: Next.js (App Router) frontend
